@@ -82,7 +82,7 @@ dimension: current_date {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the end of the previous period"
     type: date_raw
-    hidden:  yes
+    # hidden:  yes
     sql:
 
       {% if compare_to._parameter_value == "yoy" %}
