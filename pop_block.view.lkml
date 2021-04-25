@@ -18,10 +18,10 @@ dimension: current_date {
   # Important note. This must be get_date, not current_date. current_date can't be timezone converted as it has no time. The system will assume midnight for the
   # conversion leading to bad results.
   sql: {% if exclude_days._parameter_value == "999" %}
-             date((select max(${event_date}) from ${table_name}))
-           {% else %}
-               ${getdate_func}
-           {% endif %};;
+         date((select max(${event_date}) from ${table_name}))
+       {% else %}
+           ${getdate_func}
+       {% endif %};;
     # convert_tz: no
   }
 
@@ -57,8 +57,6 @@ dimension: current_date {
     convert_tz: no
   }
 
-
-
   dimension: period_1_start {
     label: "Period 1 Start"
     view_label: "Timeline Comparison Fields"
@@ -66,18 +64,47 @@ dimension: current_date {
     type: date_raw
     # hidden:  yes
     # exclude_days value 999 = get last date that has data.
-    sql:
-      {% if compare_to._parameter_value == "mom" or compare_to._parameter_value == "mom_ly"  %}
-        -- Comparison is month over month
-         date(date_trunc('month', date_add('months', -1, ${current_date})))
+    sql: {% case %}
+          {% when trailing %}
+            date(date_add('days', -(${size_of_range_dim}-1), ${current_date}))
 
-      {% else %}
-         {% if exclude_days._parameter_value == "999" or exclude_days._parameter_value == "0" %}
-             dateadd('day', -(${size_of_range_dim} - 1) , ${current_date})
-         {% else %}
-             dateadd('day', -(${size_of_range_dim} - 1 + ${exclude_days_dim}), ${current_date})
-         {% endif %}
-      {% endif %};;
+          {% when trailing_vs_prior_month %}
+            date(date_add('days', -(${size_of_range_dim}-1), ${current_date}))
+
+          {% when trailing_vs_prior_quarter %}
+            date(date_add('days', -(${size_of_range_dim}-1), ${current_date}))
+
+          {% when trailing_vs_prior_year %}
+            date(date_add('days', -(${size_of_range_dim}-1), ${current_date}))
+
+          {% when mtd_vs_prior_month %}
+            date(date_trunc('month', ${current_date}))
+
+          {% when mtd_vs_prior_quarter %}
+            date(date_trunc('month', ${current_date}))
+
+          {% when mtd_vs_prior_year %}
+            date(date_trunc('month', ${current_date}))
+
+          {% when qtd_vs_prior_quarter %}
+            date(date_trunc('quarter', ${current_date}))
+
+          {% when qtd_vs_prior_year %}
+            date(date_trunc('quarter', ${current_date}))
+
+          {% when ytd_vs_prior_year %}
+            date(date_trunc('year', ${current_date}))
+
+          {% when last_month_vs_two_months_ago %}
+            date_trunc('month', dateadd('months', -1, ${current_date}))
+
+          {% when last_quarter_vs_two_months_ago %}
+            date_trunc('quarter', dateadd('quarter', -1, ${current_date}))
+
+          {% when last_year_vs_two_years_ago %}
+            date_trunc('year', dateadd('year', -1, ${current_date}))
+
+        {% endcase %};;
   }
 
   dimension: period_1_end {
@@ -86,17 +113,47 @@ dimension: current_date {
     description: "Calculates the end of the current period"
     type: date_raw
     # hidden:  yes
-    sql:
-        {% if compare_to._parameter_value == "mom" or compare_to._parameter_value == "mom_ly" %}
-           -- Comparison is month over month
-           date(date_add('days', -1, date_trunc('month', ${current_date})))
-         {% else %}
-           {% if exclude_days._parameter_value == "999" or exclude_days._parameter_value == "0" %}
+    sql: {% case %}
+          {% when trailing %}
+            ${current_date}
+
+          {% when trailing_vs_prior_month %}
+            ${current_date}
+
+          {% when trailing_vs_prior_quarter %}
               ${current_date}
-           {% else %}
-              dateadd('day', -${exclude_days_dim}, ${current_date})
-           {% endif %}
-        {% endif %};;
+
+          {% when trailing_vs_prior_year %}
+              ${current_date}
+
+          {% when mtd_vs_prior_month %}
+            ${current_date}
+
+          {% when mtd_vs_prior_quarter %}
+            ${current_date}
+
+          {% when mtd_vs_prior_year %}
+            ${current_date}
+
+          {% when qtd_vs_prior_quarter %}
+            ${current_date}
+
+          {% when qtd_vs_prior_year %}
+            ${current_date}
+
+          {% when ytd_vs_prior_year %}
+            ${current_date}
+
+          {% when last_month_vs_two_months_ago %}
+            dateadd('days', -1 ,dateadd('months', 1, ${period_1_start}))
+
+          {% when last_quarter_vs_two_months_ago %}
+            dateadd('days', -1 ,dateadd('quarter', 1, ${period_1_start}))
+
+          {% when last_year_vs_two_years_ago %}
+            dateadd('days', -1 ,dateadd('year', 1, ${period_1_start}))
+
+        {% endcase %};;
   }
 
   dimension: period_2_start {
@@ -104,30 +161,47 @@ dimension: current_date {
     description: "Calculates the start of the previous period"
     type: date_raw
     # hidden:  yes
-    sql:
-          {% case compare_to._parameter_value %}
-            {% when "yoy" %}
-               -- Same period, last year
-              {% if exclude_days._parameter_value == "999" %}
-                dateadd('years', -1, dateadd('days', -(${size_of_range_dim} - 1), ${current_date}))
-               {% else %}
-                dateadd('years', -1, dateadd('days', -(${size_of_range_dim} - 1 + ${exclude_days_dim}), ${current_date}))
-              {% endif %}
-            {% when 'mom' %}
-              -- Month over Month (completed Months Only)
-              date(date_add('days', -(date_diff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_start}))
+    sql: {% case %}
+          {% when trailing %}
+            dateadd('days', -(${size_of_range_dim}), ${period_1_start})
 
-            {% when 'mom_ly' %}
-              -- Last completed month vs same period prior year
-              date(date_add('years', -1, ${period_1_start}))
-            {% else %}
-              -- Trailing
-              {% if exclude_days._parameter_value == "999" %}
-                dateadd('day', -((${size_of_range_dim} * 2) - 1), ${current_date})
-               {% else %}
-                dateadd('day', -((${size_of_range_dim} * 2) - 1 + ${exclude_days_dim}), ${current_date})
-              {% endif %}
-          {% endcase %};;
+          {% when trailing_vs_prior_month %}
+            dateadd('days', -30, ${period_1_start})
+
+          {% when trailing_vs_prior_quarter %}
+            dateadd('days', -91, ${period_1_start})
+
+          {% when trailing_vs_prior_year %}
+            dateadd('days', -365, ${period_1_start})
+
+          {% when mtd_vs_prior_month %}
+              dateadd('days', -(datediff('days', ${period_1_start}, dateadd('months', 1, ${period_1_start}))), ${period_1_start})
+
+          {% when mtd_vs_prior_quarter %}
+            dateadd('days', -(datediff('days', ${period_1_start}, dateadd('quarters', 1, ${period_1_start}))), ${period_1_start})
+
+          {% when mtd_vs_prior_year %}
+            dateadd('days', -365, ${period_1_start})
+
+          {% when qtd_vs_prior_quarter %}
+            dateadd('days', -(datediff('days', ${period_1_start}, dateadd('quarters', 1, ${period_1_start}))), ${period_1_start})
+
+          {% when qtd_vs_prior_year %}
+            dateadd('days', -365, ${period_1_start})
+
+          {% when ytd_vs_prior_year %}
+            dateadd('days', -365, ${period_1_start})
+
+          {% when last_month_vs_two_months_ago %}
+            dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_start})
+
+          {% when last_quarter_vs_two_months_ago %}
+            dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_start})
+
+          {% when last_year_vs_two_years_ago %}
+            dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_start})
+
+        {% endcase %};;
     }
 
     dimension: period_2_end {
@@ -135,33 +209,47 @@ dimension: current_date {
       description: "Calculates the end of the previous period"
       type: date_raw
       # hidden:  yes
-      sql:{% case compare_to._parameter_value %}
+      sql: {% case %}
+            {% when trailing %}
+              dateadd('days', -1, ${period_1_start})
 
-            {% when "yoy" %}
-             {% if exclude_days._parameter_value == "999" %}
-                 dateadd('years', -1 , ${current_date})
-             {% else %}
-                 dateadd('years', -1, dateadd('days', -${exclude_days_dim}, ${current_date}))
-             {% endif %}
+            {% when trailing_vs_prior_month %}
+              dateadd('days', -30, ${period_1_end})
 
-            {% when 'mom' %}
-              -- Month over Month (completed Months Only)
-              date(date_add('days', -1, ${period_1_start}))
+            {% when trailing_vs_prior_quarter %}
+              dateadd('days', -91, ${period_1_end})
 
-            {% when 'mom_ly' %}
-              -- Last completed month vs same period prior year
-              date(date_add('years', -1, ${period_1_end}))
+            {% when trailing_vs_prior_year %}
+              dateadd('days', -365, ${period_1_end})
 
-            {% else %}
+            {% when mtd_vs_prior_month %}
+              dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
 
-                -- This block is the same as period 1 start, but with one extra day subtracted
-               {% if exclude_days._parameter_value == "999" %}
-                   dateadd('day', -${size_of_range_dim}, ${current_date})
-               {% else %}
-                   dateadd('day', -${size_of_range_dim} - ${exclude_days_dim}, ${current_date})
-               {% endif %}
+            {% when mtd_vs_prior_quarter %}
+              dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
 
-            {% endcase %};;
+            {% when mtd_vs_prior_year %}
+              dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
+
+            {% when qtd_vs_prior_quarter %}
+              dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
+
+            {% when qtd_vs_prior_year %}
+              dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
+
+            {% when ytd_vs_prior_year %}
+              dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
+
+            {% when last_month_vs_two_months_ago %}
+              dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_end})
+
+            {% when last_quarter_vs_two_months_ago %}
+              dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_end})
+
+            {% when last_year_vs_two_years_ago %}
+              dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_end})
+
+          {% endcase %};;
       }
 
 
@@ -181,108 +269,108 @@ dimension: current_date {
       #   hidden:  yes
       # }
 
-      dimension: period_3_start {
-        view_label: "Timeline Comparison Fields"
-        description: "Calculates the start of 2 periods ago"
-        type: date_raw
-        sql:
-          {% if compare_to._parameter_value == "yoy" %}
+      # dimension: period_3_start {
+      #   view_label: "Timeline Comparison Fields"
+      #   description: "Calculates the start of 2 periods ago"
+      #   type: date_raw
+      #   sql:
+      #     {% if compare_to._parameter_value == "yoy" %}
 
-             -- Same period, last year
-            {% if exclude_days._parameter_value == "999" %}
-              dateadd('years', -2, dateadd('days', -${size_of_range_dim} + 1, ${current_date}))
-             {% else %}
-              dateadd('years', -2, dateadd('days', -${size_of_range_dim} + 1 - ${exclude_days_dim}, ${current_date}))
-            {% endif %}
+      #       -- Same period, last year
+      #       {% if exclude_days._parameter_value == "999" %}
+      #         dateadd('years', -2, dateadd('days', -${size_of_range_dim} + 1, ${current_date}))
+      #       {% else %}
+      #         dateadd('years', -2, dateadd('days', -${size_of_range_dim} + 1 - ${exclude_days_dim}, ${current_date}))
+      #       {% endif %}
 
-          {% else %}
+      #     {% else %}
 
-            -- Starts from period 1 end, then goes back for doulbe the time
-            {% if exclude_days._parameter_value == "999" %}
-              dateadd('day', -(${size_of_range_dim} * 3) + 1, ${current_date})
-             {% else %}
-              dateadd('day', -(${size_of_range_dim} * 3) + 1 - ${exclude_days_dim}, ${current_date})
-            {% endif %}
+      #       -- Starts from period 1 end, then goes back for doulbe the time
+      #       {% if exclude_days._parameter_value == "999" %}
+      #         dateadd('day', -(${size_of_range_dim} * 3) + 1, ${current_date})
+      #       {% else %}
+      #         dateadd('day', -(${size_of_range_dim} * 3) + 1 - ${exclude_days_dim}, ${current_date})
+      #       {% endif %}
 
-          {% endif %};;
-        hidden: yes
+      #     {% endif %};;
+      #   hidden: yes
 
-      }
+      # }
 
-      dimension: period_3_end {
-        view_label: "Timeline Comparison Fields"
-        description: "Calculates the end of 2 periods ago"
-        type: date_raw
-        sql:    {% if compare_to._parameter_value == "yoy" %}
-                  {% if exclude_days._parameter_value == "999" %}
-                    dateadd('years', -2 , ${current_date})
-                  {% else %}
-                    dateadd('years', -2, dateadd('days', -${exclude_days_dim}, ${current_date}))
-                  {% endif %}
+      # dimension: period_3_end {
+      #   view_label: "Timeline Comparison Fields"
+      #   description: "Calculates the end of 2 periods ago"
+      #   type: date_raw
+      #   sql:    {% if compare_to._parameter_value == "yoy" %}
+      #             {% if exclude_days._parameter_value == "999" %}
+      #               dateadd('years', -2 , ${current_date})
+      #             {% else %}
+      #               dateadd('years', -2, dateadd('days', -${exclude_days_dim}, ${current_date}))
+      #             {% endif %}
 
-                {% else %}
+      #           {% else %}
 
-                  -- This block is the same as period 2 start, but with one extra day subtracted
-                  {% if exclude_days._parameter_value == "999" %}
-                    dateadd('day', -${size_of_range_dim}, ${current_date})
-                  {% else %}
-                    dateadd('day', -${size_of_range_dim} - ${exclude_days_dim}, ${current_date})
-                  {% endif %}
+      #             -- This block is the same as period 2 start, but with one extra day subtracted
+      #             {% if exclude_days._parameter_value == "999" %}
+      #               dateadd('day', -${size_of_range_dim}, ${current_date})
+      #             {% else %}
+      #               dateadd('day', -${size_of_range_dim} - ${exclude_days_dim}, ${current_date})
+      #             {% endif %}
 
-                {% endif %};;
-        hidden: yes
-      }
+      #           {% endif %};;
+      #   hidden: yes
+      # }
 
-      dimension: period_4_start {
-        view_label: "Timeline Comparison Fields"
-        description: "Calculates the start of 4 periods ago"
-        type: date_raw
-        sql:
-          {% if compare_to._parameter_value == "yoy" %}
+      # dimension: period_4_start {
+      #   view_label: "Timeline Comparison Fields"
+      #   description: "Calculates the start of 4 periods ago"
+      #   type: date_raw
+      #   sql:
+      #     {% if compare_to._parameter_value == "yoy" %}
 
-             -- Same period, last year
-            {% if exclude_days._parameter_value == "999" %}
-              dateadd('years', -3, dateadd('days', -${size_of_range_dim} + 1, ${current_date}))
-             {% else %}
-              dateadd('years', -3, dateadd('days', -${size_of_range_dim} + 1 - ${exclude_days_dim}, ${current_date}))
-            {% endif %}
+      #       -- Same period, last year
+      #       {% if exclude_days._parameter_value == "999" %}
+      #         dateadd('years', -3, dateadd('days', -${size_of_range_dim} + 1, ${current_date}))
+      #       {% else %}
+      #         dateadd('years', -3, dateadd('days', -${size_of_range_dim} + 1 - ${exclude_days_dim}, ${current_date}))
+      #       {% endif %}
 
-          {% else %}
+      #     {% else %}
 
-            -- Starts from period 1 end, then goes back for doulbe the time
-            {% if exclude_days._parameter_value == "999" %}
-              dateadd('day', -(${size_of_range_dim} * 4) + 1, ${current_date})
-             {% else %}
-              dateadd('day', -(${size_of_range_dim} * 4) + 1 - ${exclude_days_dim}, ${current_date})
-            {% endif %}
+      #       -- Starts from period 1 end, then goes back for doulbe the time
+      #       {% if exclude_days._parameter_value == "999" %}
+      #         dateadd('day', -(${size_of_range_dim} * 4) + 1, ${current_date})
+      #       {% else %}
+      #         dateadd('day', -(${size_of_range_dim} * 4) + 1 - ${exclude_days_dim}, ${current_date})
+      #       {% endif %}
 
-          {% endif %};;
-        hidden: yes
-      }
+      #     {% endif %};;
+      #   hidden: yes
+      # }
 
-      dimension: period_4_end {
-        view_label: "Timeline Comparison Fields"
-        description: "Calculates the end of 4 periods ago"
-        type: date_raw
-        sql: {% if compare_to._parameter_value == "yoy" %}
-                  {% if exclude_days._parameter_value == "999" %}
-                    dateadd('years', -1 , ${current_date})
-                  {% else %}
-                    dateadd('years', -1, dateadd('days', -${exclude_days_dim}, ${current_date}))
-                  {% endif %}
+      # dimension: period_4_end {
+      #   view_label: "Timeline Comparison Fields"
+      #   description: "Calculates the end of 4 periods ago"
+      #   type: date_raw
+      #   sql: {% if compare_to._parameter_value == "yoy" %}
+      #             {% if exclude_days._parameter_value == "999" %}
+      #               dateadd('years', -1 , ${current_date})
+      #             {% else %}
+      #               dateadd('years', -1, dateadd('days', -${exclude_days_dim}, ${current_date}))
+      #             {% endif %}
 
-                {% else %}
+      #           {% else %}
 
-                  -- This block is the same as period 1 start, but with one extra day subtracted
-                  {% if exclude_days._parameter_value == "999" %}
-                    dateadd('day', -${size_of_range_dim}, ${current_date})
-                  {% else %}
-                    dateadd('day', -${size_of_range_dim} - ${exclude_days_dim}, ${current_date})
-                  {% endif %}
+      #             -- This block is the same as period 1 start, but with one extra day subtracted
+      #             {% if exclude_days._parameter_value == "999" %}
+      #               dateadd('day', -${size_of_range_dim}, ${current_date})
+      #             {% else %}
+      #               dateadd('day', -${size_of_range_dim} - ${exclude_days_dim}, ${current_date})
+      #             {% endif %}
 
-                {% endif %};;
-        hidden: yes
-      }
+      #           {% endif %};;
+      #   hidden: yes
+      # }
 
       parameter: size_of_range {
         description: "How many days in your period?"
