@@ -292,8 +292,47 @@ dimension: current_date {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the start of 4 periods ago"
     type: date_raw
-    sql: -- Todo
-    ;;
+    sql: date({% case compare_to._parameter_value %}
+          {% when "trailing" or "default"  %}
+            dateadd('days', -(${size_of_range_dim}), ${period_3_start})
+
+          {% when "trailing_vs_prior_month" %}
+            dateadd('days', -30, ${period_3_start})
+
+          {% when "trailing_vs_prior_quarter" %}
+            dateadd('days', -91, ${period_3_start})
+
+          {% when "trailing_vs_prior_year" or "yoy" %}
+            dateadd('days', -365, ${period_3_start})
+
+          {% when "mtd_vs_prior_month" %}
+              dateadd('days', -(datediff('days', ${period_3_start}, dateadd('months', 1, ${period_3_start}))), ${period_3_start})
+
+          {% when "mtd_vs_prior_quarter" %}
+            dateadd('days', -(datediff('days', ${period_3_start}, dateadd('quarters', 1, ${period_3_start}))), ${period_3_start})
+
+          {% when "mtd_vs_prior_year" %}
+            dateadd('days', -365, ${period_3_start})
+
+          {% when "qtd_vs_prior_quarter" %}
+            dateadd('days', -(datediff('days', ${period_3_start}, dateadd('quarters', 1, ${period_3_start}))), ${period_3_start})
+
+          {% when "qtd_vs_prior_year" %}
+            dateadd('days', -365, ${period_3_start})
+
+          {% when "ytd_vs_prior_year" %}
+            dateadd('days', -365, ${period_3_start})
+
+          {% when "last_month_vs_two_months_ago" %}
+            dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_start})
+
+          {% when "last_quarter_vs_two_quarters_ago" %}
+            dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_start})
+
+          {% when "last_year_vs_two_years_ago" %}
+            dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_start})
+
+        {% endcase %});;
     hidden: yes
   }
 
@@ -301,8 +340,32 @@ dimension: current_date {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the end of 4 periods ago"
     type: date_raw
-    sql: --todo
-    ;;
+    sql:date({% case compare_to._parameter_value %}
+            {% when "trailing" or "default" %}
+              dateadd('days', -1, ${period_3_start})
+
+            {% when "trailing_vs_prior_month" %}
+              dateadd('days', -30, ${period_3_end})
+
+            {% when "trailing_vs_prior_quarter" %}
+              dateadd('days', -91, ${period_3_end})
+
+            {% when "trailing_vs_prior_year" or "yoy" %}
+              dateadd('days', -365, ${period_3_end})
+
+            {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
+              dateadd('days', (datediff('days', ${period_3_start}, ${period_3_end})), ${period_3_start})
+
+            {% when "last_month_vs_two_months_ago" %}
+              dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_end})
+
+            {% when "last_quarter_vs_two_quarters_ago" %}
+              dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_end})
+
+            {% when "last_year_vs_two_years_ago" %}
+              dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_end})
+
+          {% endcase %});;
     hidden: yes
   }
 
