@@ -26,13 +26,13 @@ dimension: current_date {
          {% when "2" %}
             date_add('days', -2, ${getdate_func})
          {% when "start_of_week" %}
-            date_trunc('week', ${getdate_func})
+            dateadd('days', -1, date_trunc('week', ${getdate_func}))
          {% when "start_of_month" %}
-            date_trunc('month', ${getdate_func})
+            dateadd('days', -1, date_trunc('month', ${getdate_func}))
          {% when "start_of_quarter" %}
-            date_trunc('quarter', ${getdate_func})
+            dateadd('days', -1, date_trunc('quarter', ${getdate_func}))
          {% when "start_of_year" %}
-            date_trunc('year', ${getdate_func})
+            dateadd('days', -1, date_trunc('year', ${getdate_func}))
          {% else %}
             ${getdate_func}
        {% endcase %});;
@@ -572,8 +572,14 @@ dimension: current_date {
                 {% when "mtd_vs_prior_month" %}
                   'Prior Month'
 
-                {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "mtd_vs_prior_quarter"%}
+                {% when "qtd_vs_prior_quarter"%}
                   'Prior Quarter'
+
+                {% when "qtd_vs_prior_year" %}
+                  'Same Quarter Prior Year'
+
+                {% when "mtd_vs_prior_quarter" %}
+                   'Same Month # Prior Quarter'
 
                 {% when "ytd_vs_prior_year" or "mtd_vs_prior_year" %}
                   'Prior Year'
@@ -592,21 +598,27 @@ dimension: current_date {
             when ${event_date} between ${period_3_start} and ${period_3_end} then
               {% case compare_to._parameter_value %}
                 {% when "trailing" or "default" %}
-                  '3 Periods Ago'
+                  '2 Periods Ago'
                 {% when "trailing_vs_prior_month" %}
-                  'Period 3 Months Ago'
+                  'Period 2 Months Ago'
 
                 {% when "trailing_vs_prior_quarter" %}
-                  'Period 3 Quarters Ago'
+                  'Period 2 Quarters Ago'
 
                 {% when "trailing_vs_prior_year" or "yoy" %}
-                  'Period 3 Years Ago'
+                  'Period 2 Years Ago'
 
                 {% when "mtd_vs_prior_month" %}
-                  '3 Months Ago'
+                  '2 Months Ago'
 
-                {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "mtd_vs_prior_quarter"%}
-                  '3 Quarters Ago'
+                {% when "qtd_vs_prior_quarter"%}
+                  '2 Quarters Ago'
+
+                {% when "qtd_vs_prior_year" %}
+                  'Same Quarter 2 Years Ago Year'
+
+                {% when "mtd_vs_prior_quarter" %}
+                   'Same Month 2 Quarters Ago'
 
                 {% when "ytd_vs_prior_year" or "mtd_vs_prior_year" %}
                   '3 Years Ago'
@@ -625,33 +637,39 @@ dimension: current_date {
             when ${event_date} between ${period_4_start} and ${period_4_end} then
                 {% case compare_to._parameter_value %}
                   {% when "trailing" or "default" %}
-                    '4 Periods Ago'
+                    '3 Periods Ago'
                   {% when "trailing_vs_prior_month" %}
-                    'Period 4 Months Ago'
+                    'Period 3 Months Ago'
 
                   {% when "trailing_vs_prior_quarter" %}
-                    'Period 4 Quarters Ago'
+                    'Period 3 Quarters Ago'
 
                   {% when "trailing_vs_prior_year" or "yoy" %}
-                    'Period 4 Years Ago'
+                    'Period 3 Years Ago'
 
                   {% when "mtd_vs_prior_month" %}
-                    '4 Months Ago'
+                    '3 Months Ago'
 
-                  {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "mtd_vs_prior_quarter"%}
-                    '4 Quarters Ago'
+                  {% when "qtd_vs_prior_quarter"%}
+                    '3 Quarters Ago'
+
+                  {% when "qtd_vs_prior_year" %}
+                    'Same Quarter 3 Years Ago Year'
+
+                  {% when "mtd_vs_prior_quarter" %}
+                     'Same Month 3 Quarters Ago'
 
                   {% when "ytd_vs_prior_year" or "mtd_vs_prior_year" %}
-                    '4 Years Ago'
+                    '3 Years Ago'
 
                   {% when "last_month_vs_two_months_ago" %}
-                    'Four Months Ago'
+                    '4 Months Ago'
 
                   {% when "last_quarter_vs_two_quarters_ago" %}
-                    'Four Quarters Ago'
+                    '4 Quarters Ago'
 
                   {% when "last_year_vs_two_years_ago" %}
-                    'Four Years Ago'
+                    '4 Years Ago'
                 {% endcase %}   || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
             {% endif %}
            end ;;
