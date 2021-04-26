@@ -77,7 +77,6 @@ dimension: current_date {
     description: "Calculates the start of the current period"
     type: date_raw
     hidden:  yes
-    # exclude_days value 999 = get last date that has data.
     sql: date({% case compare_to._parameter_value %}
           {% when "trailing" or "default" or "trailing_vs_prior_month" or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" %}
             date(date_add('days', -(${size_of_range_dim}-1), ${current_date}))
@@ -354,7 +353,7 @@ dimension: current_date {
               dateadd('days', -365, ${period_3_end})
 
             {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
-              dateadd('days', (datediff('days', ${period_3_start}, ${period_3_end})), ${period_3_start})
+              dateadd('days', (datediff('days', ${period_3_start}, ${period_3_end})), ${period_4_start})
 
             {% when "last_month_vs_two_months_ago" %}
               dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_end})
@@ -398,6 +397,23 @@ dimension: current_date {
       label: "Last Data"
       value: "999"
     }
+    allowed_value: {
+      label: "Start of Week"
+      value: "start_of_week"
+    }
+    allowed_value: {
+      label: "Start of Month"
+      value: "start_of_month"
+    }
+    allowed_value: {
+      label: "Start of Quarter"
+      value: "start_of_quarter"
+    }
+    allowed_value: {
+      label: "Start of Year"
+      value: "start_of_year"
+    }
+
     default_value: "0"
   }
 
@@ -477,10 +493,10 @@ dimension: current_date {
       label: "3"
       value: "3"
     }
-    # allowed_value: {
-    #   label: "4"
-    #   value: "4"
-    # }
+    allowed_value: {
+      label: "4"
+      value: "4"
+    }
     default_value: "2"
   }
 
@@ -553,7 +569,7 @@ dimension: current_date {
                 {% when "trailing_vs_prior_year" or "yoy" %}
                   'Period Prior Year'
 
-                {% when "mtd_vs_prior_month" %}  %}
+                {% when "mtd_vs_prior_month" %}
                   'Prior Month'
 
                 {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "mtd_vs_prior_quarter"%}
@@ -586,7 +602,7 @@ dimension: current_date {
                 {% when "trailing_vs_prior_year" or "yoy" %}
                   'Period 3 Years Ago'
 
-                {% when "mtd_vs_prior_month" %}  %}
+                {% when "mtd_vs_prior_month" %}
                   '3 Months Ago'
 
                 {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "mtd_vs_prior_quarter"%}
@@ -603,7 +619,7 @@ dimension: current_date {
 
                 {% when "last_year_vs_two_years_ago" %}
                   'Three Years Ago'
-              {% endcase %}
+              {% endcase %}   || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
           {% endif %}
           {% if comparison_periods._parameter_value == "4" %}
             when ${event_date} between ${period_4_start} and ${period_4_end} then
@@ -619,7 +635,7 @@ dimension: current_date {
                   {% when "trailing_vs_prior_year" or "yoy" %}
                     'Period 4 Years Ago'
 
-                  {% when "mtd_vs_prior_month" %}  %}
+                  {% when "mtd_vs_prior_month" %}
                     '4 Months Ago'
 
                   {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "mtd_vs_prior_quarter"%}
@@ -636,7 +652,7 @@ dimension: current_date {
 
                   {% when "last_year_vs_two_years_ago" %}
                     'Four Years Ago'
-                {% endcase %}
+                {% endcase %}   || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
             {% endif %}
            end ;;
   }
