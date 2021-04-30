@@ -398,7 +398,7 @@ dimension: current_date {
       value: "999"
     }
     allowed_value: {
-      label: "Start of Week"
+      label: "End of Last Full Week"
       value: "start_of_week"
     }
     allowed_value: {
