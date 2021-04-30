@@ -369,8 +369,8 @@ dimension: current_date {
   }
 
   parameter: size_of_range {
-    description: "How many days in your period?"
-    label: "1. Days in period"
+    description: "How many days in your period (trailng only)?"
+    label: "1. Days in period (trailing only)"
     type: unquoted
     default_value: "0"
     view_label: "Timeline Comparison Fields"
