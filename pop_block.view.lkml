@@ -11,7 +11,7 @@ dimension: getdate_func {
   convert_tz: yes
 }
 
-dimension: current_date {
+dimension: current_date_dim {
   view_label: "Timeline Comparison Fields"
   description: "This field exists because of the way Looker handles timezone conversions. If the conversion occurs after dateadd things get wonky and you get extra days."
   # type:
@@ -83,25 +83,25 @@ dimension: current_date {
     hidden:  yes
     sql: date({% case compare_to._parameter_value %}
           {% when "trailing" or "default" or "trailing_vs_prior_month" or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" %}
-            date(date_add('days', -(${size_of_range_dim}-1), ${current_date}))
+            date(date_add('days', -(${size_of_range_dim}-1), ${current_date_dim}))
 
           {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" %}
-            date(date_trunc('month', ${current_date}))
+            date(date_trunc('month', ${current_date_dim}))
 
           {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year"%}
-            date(date_trunc('quarter', ${current_date}))
+            date(date_trunc('quarter', ${current_date_dim}))
 
           {% when "ytd_vs_prior_year" %}
-            date(date_trunc('year', ${current_date}))
+            date(date_trunc('year', ${current_date_dim}))
 
           {% when "last_month_vs_two_months_ago" %}
-            date_trunc('month', dateadd('months', -1, ${current_date}))
+            date_trunc('month', dateadd('months', -1, ${current_date_dim}))
 
           {% when "last_quarter_vs_two_quarters_ago" %}
-            date_trunc('quarter', dateadd('quarter', -1, ${current_date}))
+            date_trunc('quarter', dateadd('quarter', -1, ${current_date_dim}))
 
           {% when "last_year_vs_two_years_ago" %}
-            date_trunc('year', dateadd('year', -1, ${current_date}))
+            date_trunc('year', dateadd('year', -1, ${current_date_dim}))
 
         {% endcase %});;
   }
@@ -114,7 +114,7 @@ dimension: current_date {
     hidden:  yes
     sql: date({% case compare_to._parameter_value %}
           {% when "trailing" or "default" or "trailing_vs_prior_month"  or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" or "yoy" or "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year"  or "ytd_vs_prior_year"  %}
-            ${current_date}
+            ${current_date_dim}
 
           {% when "last_month_vs_two_months_ago" %}
             dateadd('days', -1 ,dateadd('months', 1, ${period_1_start}))
