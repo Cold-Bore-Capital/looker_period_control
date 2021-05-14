@@ -37,6 +37,7 @@ dimension: current_date {
          {% when "start_of_year" %}
             dateadd('days', -1, date_trunc('year', ${getdate_func}))
          {% else %}
+             --- Not reading
             ${getdate_func}
        {% endcase %});;
     # convert_tz: no
