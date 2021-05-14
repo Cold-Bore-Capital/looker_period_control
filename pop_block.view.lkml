@@ -28,7 +28,6 @@ dimension: current_date_dim {
          {% when "2" %}
             date_add('days', -2, ${getdate_func})
          {% when "start_of_week" %}
-            -- Start of Week.
             dateadd('days', -1, date_trunc('week', ${getdate_func}))
          {% when "start_of_month" %}
             dateadd('days', -1, date_trunc('month', ${getdate_func}))
@@ -37,7 +36,6 @@ dimension: current_date_dim {
          {% when "start_of_year" %}
             dateadd('days', -1, date_trunc('year', ${getdate_func}))
          {% else %}
-             --- Not reading
             ${getdate_func}
        {% endcase %});;
     # convert_tz: no
