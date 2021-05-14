@@ -18,7 +18,9 @@ dimension: current_date {
   hidden:  yes
   # Important note. This must be get_date, not current_date. current_date can't be timezone converted as it has no time. The system will assume midnight for the
   # conversion leading to bad results.
-  sql: date({% case exclude_days._parameter_value %}
+  sql:
+  -- abcdefg
+  date({% case exclude_days._parameter_value %}
          {% when "999" %}
             (select max(${event_date}) from ${table_name})
          {% when "1" %}
@@ -26,6 +28,7 @@ dimension: current_date {
          {% when "2" %}
             date_add('days', -2, ${getdate_func})
          {% when "start_of_week" %}
+            -- Start of Week.
             dateadd('days', -1, date_trunc('week', ${getdate_func}))
          {% when "start_of_month" %}
             dateadd('days', -1, date_trunc('month', ${getdate_func}))
