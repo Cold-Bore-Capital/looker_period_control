@@ -558,7 +558,8 @@ dimension: current_date_dim {
 
                 {% when "last_year_vs_two_years_ago" %}
                   'Last Year'
-              {% endcase %}  || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
+              {% endcase %}
+              --|| ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
 
              when ${event_date} between ${period_2_start} and ${period_2_end} then
               {% case compare_to._parameter_value %}
@@ -597,7 +598,8 @@ dimension: current_date_dim {
                 {% when "last_year_vs_two_years_ago" %}
                   'Two Years Ago'
 
-              {% endcase %}   || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
+              {% endcase %}
+              -- || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
           {% if comparison_periods._parameter_value == "4" or comparison_periods._parameter_value == "3"%}
             when ${event_date} between ${period_3_start} and ${period_3_end} then
               {% case compare_to._parameter_value %}
@@ -635,7 +637,8 @@ dimension: current_date_dim {
 
                 {% when "last_year_vs_two_years_ago" %}
                   'Three Years Ago'
-              {% endcase %}   || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
+              {% endcase %}
+              -- || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
           {% endif %}
           {% if comparison_periods._parameter_value == "4" %}
             when ${event_date} between ${period_4_start} and ${period_4_end} then
@@ -674,7 +677,8 @@ dimension: current_date_dim {
 
                   {% when "last_year_vs_two_years_ago" %}
                     '4 Years Ago'
-                {% endcase %}   || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
+                {% endcase %}
+                -- || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
             {% endif %}
            end ;;
   }
