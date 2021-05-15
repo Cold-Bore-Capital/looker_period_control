@@ -532,10 +532,12 @@ dimension: current_date_dim {
     description: "Pivot me! Returns the period the metric covers, i.e. either the 'This Period', 'Previous Period' or 'Last Year', '2 Years Ago'"
     type: string
     order_by_field: order_for_period
-    #  || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
+    # These were added to the end of each period, but this caused a bug in Looker. Because the series name changed each night the system ended up
+    # falling back to the default colors.
+    # || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
     # || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
     # || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
-    #
+    # || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
     sql:   case
              when ${event_date} between ${period_1_start} and ${period_1_end} then
 
