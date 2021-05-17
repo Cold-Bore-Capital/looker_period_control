@@ -23,7 +23,7 @@ dimension: current_date_dim {
   -- abcdefg
   date({% case exclude_days._parameter_value %}
          {% when "999" %}
-            max($event_date)
+            max(${event_date})
          {% when "1" %}
             date_add('days', -1, ${getdate_func})
          {% when "2" %}
