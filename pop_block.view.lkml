@@ -18,11 +18,12 @@ dimension: current_date_dim {
   hidden:  yes
   # Important note. This must be get_date, not current_date. current_date can't be timezone converted as it has no time. The system will assume midnight for the
   # conversion leading to bad results.
+  #  (select max(${event_date}) from ${table_name})
   sql:
   -- abcdefg
   date({% case exclude_days._parameter_value %}
          {% when "999" %}
-            (select max(${event_date}) from ${table_name})
+            max($event_date)
          {% when "1" %}
             date_add('days', -1, ${getdate_func})
          {% when "2" %}
