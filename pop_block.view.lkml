@@ -752,6 +752,7 @@ dimension: current_date_dim {
     sql: dateadd('day', ${day_in_period}, ${period_1_start}) ;;
     view_label: "Timeline Comparison Fields"
     convert_tz: no
+    # drill_fields: [detail]
   }
 
   dimension: date_last_period {
