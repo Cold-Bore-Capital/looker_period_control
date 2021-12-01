@@ -19,7 +19,6 @@ dimension: current_date_dim {
   # Important note. This must be get_date, not current_date. current_date can't be timezone converted as it has no time. The system will assume midnight for the
   # conversion leading to bad results.
   sql:
-  -- abcdefg
   date({% case exclude_days._parameter_value %}
          {% when "999" %}
             (select max(${origin_event_date}) from ${origin_table_name})
@@ -79,18 +78,28 @@ dimension: current_date_dim {
     description: "Calculates the start of the current period"
     type: date_raw
     hidden:  yes
-    sql: date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
           {% when "trailing" or "default" or "trailing_vs_prior_month" or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" %}
-            date(date_add('days', -(${size_of_range_dim}-1), ${current_date_dim}))
+            date_add('days', -(${size_of_range_dim}-1), ${current_date_dim})
+
+          {% when "trailing_30" %}
+            date_add('days', -(29), ${current_date_dim})
 
           {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" %}
-            date(date_trunc('month', ${current_date_dim}))
+            date_trunc('month', ${current_date_dim})
 
           {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year"%}
-            date(date_trunc('quarter', ${current_date_dim}))
+            date_trunc('quarter', ${current_date_dim})
 
           {% when "ytd_vs_prior_year" %}
-            date(date_trunc('year', ${current_date_dim}))
+            date_trunc('year', ${current_date_dim})
 
           {% when "last_month_vs_two_months_ago" %}
             date_trunc('month', dateadd('months', -1, ${current_date_dim}))
@@ -101,7 +110,7 @@ dimension: current_date_dim {
           {% when "last_year_vs_two_years_ago" %}
             date_trunc('year', dateadd('year', -1, ${current_date_dim}))
 
-        {% endcase %});;
+        {% endcase %}) --Note here ;;
   }
 
   dimension: period_1_end {
@@ -110,7 +119,14 @@ dimension: current_date_dim {
     description: "Calculates the end of the current period"
     type: date_raw
     hidden:  yes
-    sql: date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
           {% when "trailing" or "default" or "trailing_vs_prior_month"  or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" or "yoy" or "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year"  or "ytd_vs_prior_year"  %}
             ${current_date_dim}
 
@@ -131,7 +147,14 @@ dimension: current_date_dim {
     description: "Calculates the start of the previous period"
     type: date_raw
     hidden:  yes
-    sql: date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
           {% when "trailing" or "default"  %}
             dateadd('days', -(${size_of_range_dim}), ${period_1_start})
 
@@ -179,7 +202,14 @@ dimension: current_date_dim {
     description: "Calculates the end of the previous period"
     type: date_raw
     hidden:  yes
-    sql: date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
             {% when "trailing" or "default" %}
               dateadd('days', -1, ${period_1_start})
 
@@ -211,7 +241,14 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the start of 2 periods ago"
     type: date_raw
-    sql: date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
           {% when "trailing" or "default"  %}
             dateadd('days', -(${size_of_range_dim}), ${period_2_start})
 
@@ -260,7 +297,14 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the end of 2 periods ago"
     type: date_raw
-    sql:  date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
             {% when "trailing" or "default" %}
               dateadd('days', -1, ${period_2_start})
 
@@ -293,7 +337,14 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the start of 4 periods ago"
     type: date_raw
-    sql: date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
           {% when "trailing" or "default"  %}
             dateadd('days', -(${size_of_range_dim}), ${period_3_start})
 
@@ -341,7 +392,14 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     description: "Calculates the end of 4 periods ago"
     type: date_raw
-    sql:date({% case compare_to._parameter_value %}
+    sql:
+    {% if user_compare_to._parameter_value != "none" %}
+        {% assign comp_value = user_compare_to._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = compare_to._parameter_value  %}
+    {% endif %}
+
+    date({% case comp_value %}
             {% when "trailing" or "default" %}
               dateadd('days', -1, ${period_3_start})
 
@@ -372,7 +430,17 @@ dimension: current_date_dim {
 
   parameter: size_of_range {
     description: "How many days in your period (trailng only)?"
-    label: "1. Days in period (trailing only)"
+    label: "1. Trailing Days"
+    group_label: "Tile Only"
+    type: unquoted
+    default_value: "0"
+    view_label: "Timeline Comparison Fields"
+  }
+
+  parameter: user_size_of_range {
+    description: "How many days in your period (trailng only)?"
+    label: "Trailing Days"
+    group_label: "Dashboard User Selection"
     type: unquoted
     default_value: "0"
     view_label: "Timeline Comparison Fields"
@@ -381,6 +449,7 @@ dimension: current_date_dim {
   parameter: exclude_days {
     description: "Select days to exclude"
     label: "2. Exclude Days:"
+    group_label: "Tile Only"
     view_label: "Timeline Comparison Fields"
     type: unquoted
     allowed_value: {
@@ -419,9 +488,11 @@ dimension: current_date_dim {
     default_value: "0"
   }
 
+
   parameter: compare_to {
     label: "3. Compare to"
     view_label: "Timeline Comparison Fields"
+    group_label: "Tile Only"
     type: unquoted
     allowed_value: {
       label: "Select a Timeframe"
@@ -432,15 +503,80 @@ dimension: current_date_dim {
       value: "trailing"
     }
     allowed_value: {
-      label: "Trailing vs Same Period Prior Month"
+      label: "Trailing 30 Days vs Same Period Prior Month"
       value: "trailing_vs_prior_month"
     }
     allowed_value: {
-      label: "Trailing vs Same Period Prior Quarter"
+      label: "Trailing 90 Days vs Same Period Prior Quarter"
       value: "trailing_vs_prior_quarter"
     }
     allowed_value: {
-      label: "Trailing vs Same Period Prior Year"
+      label: "Trailing 365 Days vs Same Period Prior Year"
+      value: "trailing_vs_prior_year"
+    }
+    allowed_value: {
+      label: "MTD vs Prior Month"
+      value: "mtd_vs_prior_month"
+    }
+    allowed_value: {
+      label: "MTD vs Prior Quarter"
+      value: "mtd_vs_prior_quarter"
+    }
+    allowed_value: {
+      label: "MTD vs Prior Year"
+      value: "mtd_vs_prior_year"
+    }
+    allowed_value: {
+      label: "QTD vs Prior Quarter"
+      value: "qtd_vs_prior_quarter"
+    }
+    allowed_value: {
+      label: "QTD vs Prior Year"
+      value: "qtd_vs_prior_year"
+    }
+    allowed_value: {
+      label: "YTD vs Prior Year"
+      value: "ytd_vs_prior_year"
+    }
+    allowed_value: {
+      label: "Last Month Vs Two Months Ago"
+      value: "last_month_vs_two_months_ago"
+    }
+    allowed_value: {
+      label: "Last Quarter Vs Two Quarters Ago"
+      value: "last_quarter_vs_two_quarters_ago"
+    }
+    allowed_value: {
+      label: "Last Year vs Two Years Ago"
+      value: "last_year_vs_two_years_ago"
+    }
+    default_value: "none"
+  }
+
+
+  parameter: user_compare_to {
+    label: "PoP Selection"
+    view_label: "Timeline Comparison Fields"
+    group_label: "Dashboard User Selection"
+    type: unquoted
+    allowed_value: {
+      label: "Select a Timeframe"
+      value: "none"
+    }
+    allowed_value: {
+      label: "Trailing"
+      value: "trailing"
+    }
+    allowed_value: {
+      label: "Trailing vs Same Period Prior Month (MUST SET DAYS < 30)"
+      value: "trailing_vs_prior_month"
+    }
+    allowed_value: {
+      label: "Trailing 90 Days vs Same Period Prior Quarter (MUST SET DAYS < 90)"
+      value: "trailing_vs_prior_quarter"
+    }
+    allowed_value: {
+      label: "Trailing 365 Days vs Same Period Prior Year (MUST SET DAYS < 365)"
       value: "trailing_vs_prior_year"
     }
     allowed_value: {
@@ -484,6 +620,7 @@ dimension: current_date_dim {
 
   parameter: comparison_periods {
     label: "4. Number of Periods"
+    group_label: "Tile Only"
     view_label: "Timeline Comparison Fields"
     description: "Choose the number of periods you would like to compare - defaults to 2. Only works with templated periods from step 2."
     type: number
@@ -506,7 +643,13 @@ dimension: current_date_dim {
   dimension: size_of_range_dim {
     view_label: "size_of_range_dim"
     hidden: yes
-    sql: {% parameter size_of_range %} ;;
+    sql:
+      {% if user_size_of_range._parameter_value != "0" %}
+        {% assign comp_value = user_size_of_range._parameter_value  %}
+    {% else  %}
+        {% assign comp_value = size_of_range._parameter_value  %}
+    {% endif %}
+    {{ comp_value}} ;;
     type: number
   }
 
@@ -540,8 +683,12 @@ dimension: current_date_dim {
     # || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
     sql:   case
              when ${event_date} between ${period_1_start} and ${period_1_end} then
-
-              {% case compare_to._parameter_value %}
+                {% if user_compare_to._parameter_value != "none" %}
+                    {% assign comp_value = user_compare_to._parameter_value  %}
+                {% else  %}
+                    {% assign comp_value = compare_to._parameter_value  %}
+                {% endif %}
+              {% case comp_value %}
                 {% when "trailing" or "default" or "trailing_vs_prior_month" or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" or "yoy" %}
                   'This Period'
 
@@ -566,7 +713,12 @@ dimension: current_date_dim {
 
 
              when ${event_date} between ${period_2_start} and ${period_2_end} then
-              {% case compare_to._parameter_value %}
+            {% if user_compare_to._parameter_value != "none" %}
+                {% assign comp_value = user_compare_to._parameter_value  %}
+            {% else  %}
+                {% assign comp_value = compare_to._parameter_value  %}
+            {% endif %}
+              {% case comp_value %}
                 {% when "trailing" or "default" %}
                   'Prior Period'
                 {% when "trailing_vs_prior_month" %}
@@ -606,7 +758,12 @@ dimension: current_date_dim {
 
           {% if comparison_periods._parameter_value == "4" or comparison_periods._parameter_value == "3"%}
             when ${event_date} between ${period_3_start} and ${period_3_end} then
-              {% case compare_to._parameter_value %}
+            {% if user_compare_to._parameter_value != "none" %}
+                {% assign comp_value = user_compare_to._parameter_value  %}
+            {% else  %}
+                {% assign comp_value = compare_to._parameter_value  %}
+            {% endif %}
+              {% case comp_value %}
                 {% when "trailing" or "default" %}
                   '2 Periods Ago'
                 {% when "trailing_vs_prior_month" %}
@@ -646,7 +803,12 @@ dimension: current_date_dim {
           {% endif %}
           {% if comparison_periods._parameter_value == "4" %}
             when ${event_date} between ${period_4_start} and ${period_4_end} then
-                {% case compare_to._parameter_value %}
+              {% if user_compare_to._parameter_value != "none" %}
+                {% assign comp_value = user_compare_to._parameter_value  %}
+            {% else  %}
+                {% assign comp_value = compare_to._parameter_value  %}
+            {% endif %}
+              {% case comp_value %}
                   {% when "trailing" or "default" %}
                     '3 Periods Ago'
                   {% when "trailing_vs_prior_month" %}
