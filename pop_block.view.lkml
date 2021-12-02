@@ -86,11 +86,20 @@ dimension: current_date_dim {
     {% endif %}
 
     date({% case comp_value %}
-          {% when "trailing" or "default" or "trailing_vs_prior_month" or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" %}
+          {% when "trailing" or "default"%}
             date_add('days', -(${size_of_range_dim}-1), ${current_date_dim})
 
           {% when "trailing_30" %}
             date_add('days', -(29), ${current_date_dim})
+
+          {% when "trailing_90" %}
+            date_add('days', -(89), ${current_date_dim})
+
+          {% when "trailing_180" %}
+            date_add('days', -(179), ${current_date_dim})
+
+           {% when "trailing_365" %}
+            date_add('days', -(365), ${current_date_dim})
 
           {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" %}
             date_trunc('month', ${current_date_dim})
@@ -127,7 +136,7 @@ dimension: current_date_dim {
     {% endif %}
 
     date({% case comp_value %}
-          {% when "trailing" or "default" or "trailing_vs_prior_month"  or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" or "yoy" or "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year"  or "ytd_vs_prior_year"  %}
+          {% when "trailing" or "default" or "trailing_30"  or "trailing_90" or "trailing_365" or "trailing_180" or "yoy" or "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year"  or "ytd_vs_prior_year"  %}
             ${current_date_dim}
 
           {% when "last_month_vs_two_months_ago" %}
@@ -158,13 +167,16 @@ dimension: current_date_dim {
           {% when "trailing" or "default"  %}
             dateadd('days', -(${size_of_range_dim}), ${period_1_start})
 
-          {% when "trailing_vs_prior_month" %}
+          {% when "trailing_30" %}
             dateadd('days', -30, ${period_1_start})
 
-          {% when "trailing_vs_prior_quarter" %}
-            dateadd('days', -91, ${period_1_start})
+          {% when "trailing_90" %}
+            dateadd('days', -90, ${period_1_start})
 
-          {% when "trailing_vs_prior_year" or "yoy" %}
+          {% when "trailing_180" %}
+            dateadd('days', -180, ${period_1_start})
+
+          {% when "trailing_365" or "yoy" %}
             dateadd('days', -365, ${period_1_start})
 
           {% when "mtd_vs_prior_month" %}
@@ -213,13 +225,16 @@ dimension: current_date_dim {
             {% when "trailing" or "default" %}
               dateadd('days', -1, ${period_1_start})
 
-            {% when "trailing_vs_prior_month" %}
+            {% when "trailing_30" %}
               dateadd('days', -30, ${period_1_end})
 
-            {% when "trailing_vs_prior_quarter" %}
-              dateadd('days', -91, ${period_1_end})
+            {% when "trailing_90" %}
+              dateadd('days', -90, ${period_1_end})
 
-            {% when "trailing_vs_prior_year" or "yoy" %}
+            {% when "trailing_180" %}
+              dateadd('days', -90, ${period_1_end})
+
+            {% when "trailing_365" or "yoy" %}
               dateadd('days', -365, ${period_1_end})
 
             {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
@@ -252,13 +267,16 @@ dimension: current_date_dim {
           {% when "trailing" or "default"  %}
             dateadd('days', -(${size_of_range_dim}), ${period_2_start})
 
-          {% when "trailing_vs_prior_month" %}
+          {% when "trailing_30" %}
             dateadd('days', -30, ${period_2_start})
 
-          {% when "trailing_vs_prior_quarter" %}
-            dateadd('days', -91, ${period_2_start})
+          {% when "trailing_90" %}
+            dateadd('days', -90, ${period_2_start})
 
-          {% when "trailing_vs_prior_year" or "yoy" %}
+          {% when "trailing_180" %}
+            dateadd('days', -180, ${period_2_start})
+
+          {% when "trailing_365" or "yoy" %}
             dateadd('days', -365, ${period_2_start})
 
           {% when "mtd_vs_prior_month" %}
@@ -308,13 +326,16 @@ dimension: current_date_dim {
             {% when "trailing" or "default" %}
               dateadd('days', -1, ${period_2_start})
 
-            {% when "trailing_vs_prior_month" %}
+            {% when "trailing_30" %}
               dateadd('days', -30, ${period_2_end})
 
-            {% when "trailing_vs_prior_quarter" %}
-              dateadd('days', -91, ${period_2_end})
+            {% when "trailing_90" %}
+              dateadd('days', -90, ${period_2_end})
 
-            {% when "trailing_vs_prior_year" or "yoy" %}
+            {% when "trailing_180" %}
+              dateadd('days', -180, ${period_2_end})
+
+            {% when "trailing_365" or "yoy" %}
               dateadd('days', -365, ${period_2_end})
 
             {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
@@ -348,13 +369,16 @@ dimension: current_date_dim {
           {% when "trailing" or "default"  %}
             dateadd('days', -(${size_of_range_dim}), ${period_3_start})
 
-          {% when "trailing_vs_prior_month" %}
+          {% when "trailing_30" %}
             dateadd('days', -30, ${period_3_start})
 
-          {% when "trailing_vs_prior_quarter" %}
-            dateadd('days', -91, ${period_3_start})
+          {% when "trailing_90" %}
+            dateadd('days', -90, ${period_3_start})
 
-          {% when "trailing_vs_prior_year" or "yoy" %}
+          {% when "trailing_180" %}
+            dateadd('days', -180, ${period_3_start})
+
+          {% when "trailing_365" or "yoy" %}
             dateadd('days', -365, ${period_3_start})
 
           {% when "mtd_vs_prior_month" %}
@@ -403,13 +427,16 @@ dimension: current_date_dim {
             {% when "trailing" or "default" %}
               dateadd('days', -1, ${period_3_start})
 
-            {% when "trailing_vs_prior_month" %}
+            {% when "trailing_30" %}
               dateadd('days', -30, ${period_3_end})
 
-            {% when "trailing_vs_prior_quarter" %}
-              dateadd('days', -91, ${period_3_end})
+            {% when "trailing_90" %}
+              dateadd('days', -90, ${period_3_end})
 
-            {% when "trailing_vs_prior_year" or "yoy" %}
+            {% when "trailing_180" %}
+              dateadd('days', -180, ${period_3_end})
+
+            {% when "trailing_365" or "yoy" %}
               dateadd('days', -365, ${period_3_end})
 
             {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
@@ -503,16 +530,20 @@ dimension: current_date_dim {
       value: "trailing"
     }
     allowed_value: {
-      label: "Trailing 30 Days vs Same Period Prior Month"
-      value: "trailing_vs_prior_month"
+      label: "Trailing 30 Days"
+      value: "trailing_30"
     }
     allowed_value: {
-      label: "Trailing 90 Days vs Same Period Prior Quarter"
-      value: "trailing_vs_prior_quarter"
+      label: "Trailing 90 Days"
+      value: "trailing_90"
     }
     allowed_value: {
-      label: "Trailing 365 Days vs Same Period Prior Year"
-      value: "trailing_vs_prior_year"
+      label: "Trailing 180 Days"
+      value: "trailing_180"
+    }
+    allowed_value: {
+      label: "Trailing 365 Days"
+      value: "trailing_365"
     }
     allowed_value: {
       label: "MTD vs Prior Month"
@@ -568,16 +599,20 @@ dimension: current_date_dim {
       value: "trailing"
     }
     allowed_value: {
-      label: "Trailing vs Same Period Prior Month (MUST SET DAYS < 30)"
-      value: "trailing_vs_prior_month"
+      label: "Trailing 30 Days"
+      value: "trailing_30"
     }
     allowed_value: {
-      label: "Trailing 90 Days vs Same Period Prior Quarter (MUST SET DAYS < 90)"
-      value: "trailing_vs_prior_quarter"
+      label: "Trailing 90 Days"
+      value: "trailing_90"
     }
     allowed_value: {
-      label: "Trailing 365 Days vs Same Period Prior Year (MUST SET DAYS < 365)"
-      value: "trailing_vs_prior_year"
+      label: "Trailing 180 Days"
+      value: "trailing_180"
+    }
+    allowed_value: {
+      label: "Trailing 365 Days"
+      value: "trailing_365"
     }
     allowed_value: {
       label: "MTD vs Prior Month"
@@ -689,7 +724,7 @@ dimension: current_date_dim {
                     {% assign comp_value = compare_to._parameter_value  %}
                 {% endif %}
               {% case comp_value %}
-                {% when "trailing" or "default" or "trailing_vs_prior_month" or "trailing_vs_prior_quarter" or "trailing_vs_prior_year" or "yoy" %}
+                {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" or "yoy" %}
                   'This Period'
 
                 {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year"  %}
@@ -721,13 +756,13 @@ dimension: current_date_dim {
               {% case comp_value %}
                 {% when "trailing" or "default" %}
                   'Prior Period'
-                {% when "trailing_vs_prior_month" %}
+                {% when "trailing_30" %}
                   'Period Last Month'
 
-                {% when "trailing_vs_prior_quarter" %}
+                {% when "trailing_90" %}
                   'Period Last Quarter'
 
-                {% when "trailing_vs_prior_year" or "yoy" %}
+                {% when "trailing_365" or "yoy" %}
                   'Period Prior Year'
 
                 {% when "mtd_vs_prior_month" %}
@@ -766,13 +801,13 @@ dimension: current_date_dim {
               {% case comp_value %}
                 {% when "trailing" or "default" %}
                   '2 Periods Ago'
-                {% when "trailing_vs_prior_month" %}
+                {% when "trailing_30" %}
                   'Period 2 Months Ago'
 
-                {% when "trailing_vs_prior_quarter" %}
+                {% when "trailing_90" %}
                   'Period 2 Quarters Ago'
 
-                {% when "trailing_vs_prior_year" or "yoy" %}
+                {% when "trailing_365" or "yoy" %}
                   'Period 2 Years Ago'
 
                 {% when "mtd_vs_prior_month" %}
@@ -811,13 +846,13 @@ dimension: current_date_dim {
               {% case comp_value %}
                   {% when "trailing" or "default" %}
                     '3 Periods Ago'
-                  {% when "trailing_vs_prior_month" %}
+                  {% when "trailing_30" %}
                     'Period 3 Months Ago'
 
-                  {% when "trailing_vs_prior_quarter" %}
+                  {% when "trailing_90" %}
                     'Period 3 Quarters Ago'
 
-                  {% when "trailing_vs_prior_year" or "yoy" %}
+                  {% when "trailing_365" or "yoy" %}
                     'Period 3 Years Ago'
 
                   {% when "mtd_vs_prior_month" %}
