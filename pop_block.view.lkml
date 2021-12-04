@@ -463,19 +463,7 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
   }
 
-  dimension: as_of_date_value {
-    label: "As of Date Setting"
-    sql:
-     {% if as_of_date._parameter_value == "now" | date: "%Y-%m-%d %}
-        yes
-     {% else %}
-        no
-      {% endif %}
-    ;;
 
-    type: string
-    # {% parameter as_of_date %} ;;
-  }
 
   parameter: size_of_range {
     description: "How many days in your period (trailng only)?"
