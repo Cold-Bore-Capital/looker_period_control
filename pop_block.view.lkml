@@ -100,13 +100,13 @@ dimension: current_date_dim {
             date_add('days', -(${size_of_range_dim}-1), ${current_date_dim})
 
           {% when "trailing_30" %}
-            date_add('days', -(29), ${current_date_dim})
+            date_add('days', -(30), ${current_date_dim})
 
           {% when "trailing_90" %}
-            date_add('days', -(89), ${current_date_dim})
+            date_add('days', -(90), ${current_date_dim})
 
           {% when "trailing_180" %}
-            date_add('days', -(179), ${current_date_dim})
+            date_add('days', -(180), ${current_date_dim})
 
            {% when "trailing_365" %}
             date_add('days', -(365), ${current_date_dim})
