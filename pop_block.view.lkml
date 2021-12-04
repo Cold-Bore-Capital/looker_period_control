@@ -70,7 +70,7 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
     type: number
-    sql: datediff(${period_1_start},${period_1_end}) ;;
+    sql: datediff('days', ${period_1_start},${period_1_end}) ;;
   }
 
   dimension: period_2_start_display {
@@ -93,7 +93,7 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
     type: number
-    sql: datediff(${period_2_start},${period_2_end}) ;;
+    sql: datediff('days', ${period_2_start},${period_2_end}) ;;
   }
 
   dimension: period_3_start_display {
@@ -116,7 +116,7 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
     type: number
-    sql: datediff(${period_3_start},${period_3_end}) ;;
+    sql: datediff('days', ${period_3_start},${period_3_end}) ;;
   }
 
   dimension: period_4_start_display {
@@ -139,7 +139,7 @@ dimension: current_date_dim {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
     type: number
-    sql: datediff(${period_4_start},${period_4_end}) ;;
+    sql: datediff('days', ${period_4_start},${period_4_end}) ;;
   }
 
   dimension: period_1_start {
@@ -168,7 +168,7 @@ dimension: current_date_dim {
           {% when "trailing_180" %}
             date_add('days', -(180), ${current_date_dim})
 
-           {% when "trailing_365" %}
+          {% when "trailing_365" %}
             date_add('days', -(365), ${current_date_dim})
 
           {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" %}
@@ -189,7 +189,7 @@ dimension: current_date_dim {
           {% when "last_year_vs_two_years_ago" %}
             date_trunc('year', dateadd('year', -1, ${current_date_dim}))
 
-        {% endcase %}) --Note here ;;
+        {% endcase %});;
   }
 
   dimension: period_1_end {
