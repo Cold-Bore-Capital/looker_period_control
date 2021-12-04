@@ -457,7 +457,7 @@ dimension: current_date_dim {
 
   parameter: size_of_range {
     description: "How many days in your period (trailng only)?"
-    label: "1. Trailing Days"
+    label: "Number of Trailing Days"
     group_label: "Tile Only"
     type: unquoted
     default_value: "0"
@@ -466,7 +466,7 @@ dimension: current_date_dim {
 
   parameter: user_size_of_range {
     description: "How many days in your period (trailng only)?"
-    label: "Trailing Days"
+    label: "Number of Trailing Days"
     group_label: "Dashboard User Selection"
     type: unquoted
     default_value: "0"
@@ -475,7 +475,7 @@ dimension: current_date_dim {
 
   parameter: exclude_days {
     description: "Select days to exclude"
-    label: "2. Exclude Days:"
+    label: "Exclude Days:"
     group_label: "Tile Only"
     view_label: "Timeline Comparison Fields"
     type: unquoted
@@ -517,7 +517,7 @@ dimension: current_date_dim {
 
 
   parameter: compare_to {
-    label: "3. Compare to"
+    label: "Compare to"
     view_label: "Timeline Comparison Fields"
     group_label: "Tile Only"
     type: unquoted
@@ -654,11 +654,15 @@ dimension: current_date_dim {
   }
 
   parameter: comparison_periods {
-    label: "4. Number of Periods"
+    label: "Number of Periods"
     group_label: "Tile Only"
     view_label: "Timeline Comparison Fields"
     description: "Choose the number of periods you would like to compare - defaults to 2. Only works with templated periods from step 2."
     type: number
+    allowed_value: {
+      label: "Select"
+      value: "none"
+    }
     allowed_value: {
       label: "2"
       value: "2"
@@ -671,7 +675,7 @@ dimension: current_date_dim {
       label: "4"
       value: "4"
     }
-    default_value: "2"
+    default_value: "none"
   }
 
 
