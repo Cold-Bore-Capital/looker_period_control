@@ -178,16 +178,16 @@ dimension: current_date_dim {
             dateadd('days', -(${size_of_range_dim}), ${period_1_start})
 
           {% when "trailing_30" %}
-            dateadd('days', -30, ${period_1_start})
+            dateadd('days', -31, ${period_1_start})
 
           {% when "trailing_90" %}
-            dateadd('days', -90, ${period_1_start})
+            dateadd('days', -91, ${period_1_start})
 
           {% when "trailing_180" %}
-            dateadd('days', -180, ${period_1_start})
+            dateadd('days', -181, ${period_1_start})
 
           {% when "trailing_365" or "yoy" %}
-            dateadd('days', -365, ${period_1_start})
+            dateadd('days', -366, ${period_1_start})
 
           {% when "mtd_vs_prior_month" %}
               dateadd('days', -(datediff('days', ${period_1_start}, dateadd('months', 1, ${period_1_start}))), ${period_1_start})
@@ -232,21 +232,8 @@ dimension: current_date_dim {
     {% endif %}
 
     date({% case comp_value %}
-            {% when "trailing" or "default" %}
+            {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" %}
               dateadd('days', -1, ${period_1_start})
-
-            {% when "trailing_30" %}
-              dateadd('days', -30, ${period_1_end})
-
-            {% when "trailing_90" %}
-              dateadd('days', -90, ${period_1_end})
-
-            {% when "trailing_180" %}
-              dateadd('days', -90, ${period_1_end})
-
-            {% when "trailing_365" or "yoy" %}
-              dateadd('days', -365, ${period_1_end})
-
             {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
               dateadd('days', (datediff('days', ${period_1_start}, ${period_1_end})), ${period_2_start})
 
@@ -260,6 +247,21 @@ dimension: current_date_dim {
               dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_end})
 
           {% endcase %});;
+
+
+
+
+            # {% when "trailing_30" %}
+            #   dateadd('days', -30, ${period_1_end})
+
+            # {% when "trailing_90" %}
+            #   dateadd('days', -90, ${period_1_end})
+
+            # {% when "trailing_180" %}
+            #   dateadd('days', -180, ${period_1_end})
+
+            # {% when "trailing_365" or "yoy" %}
+            #   dateadd('days', -365, ${period_1_end})
   }
 
   dimension: period_3_start {
