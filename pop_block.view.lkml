@@ -175,7 +175,7 @@ dimension: current_date_dim {
 
     date({% case comp_value %}
           {% when "trailing" or "default"  %}
-            dateadd('days', -(${size_of_range_dim}), ${period_1_start})
+            dateadd('days', -(${size_of_range_dim}+1), ${period_1_start})
 
           {% when "trailing_30" %}
             dateadd('days', -31, ${period_1_start})
