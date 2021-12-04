@@ -66,6 +66,13 @@ dimension: current_date_dim {
     convert_tz: no
   }
 
+  measure: period_1_len {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: number
+    sql: datediff(${period_1_start},${period_1_end}) ;;
+  }
+
   dimension: period_2_start_display {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
@@ -80,6 +87,59 @@ dimension: current_date_dim {
     type: date
     sql: ${period_2_end} ;;
     convert_tz: no
+  }
+
+  measure: period_2_len {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: number
+    sql: datediff(${period_2_start},${period_2_end}) ;;
+  }
+
+  dimension: period_3_start_display {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: date
+    sql: ${period_3_start} ;;
+    convert_tz: no
+  }
+
+  dimension: period_3_end_display {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: date
+    sql: ${period_3_end} ;;
+    convert_tz: no
+  }
+
+  measure: period_3_len {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: number
+    sql: datediff(${period_3_start},${period_3_end}) ;;
+  }
+
+  dimension: period_4_start_display {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: date
+    sql: ${period_3_start} ;;
+    convert_tz: no
+  }
+
+  dimension: period_4_end_display {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: date
+    sql: ${period_3_end} ;;
+    convert_tz: no
+  }
+
+  measure: period_4_len {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: number
+    sql: datediff(${period_4_start},${period_4_end}) ;;
   }
 
   dimension: period_1_start {
