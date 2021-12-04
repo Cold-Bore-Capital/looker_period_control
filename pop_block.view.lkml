@@ -455,6 +455,20 @@ dimension: current_date_dim {
     hidden: yes
   }
 
+  parameter: as_of_date {
+    label: "As of Date"
+    description: "Use this to change the value of the current date. Setting to a date will change the tile/dashboard to act as if today is the selected date."
+    type: date
+    group_label: "Dashboard User Selection"
+    view_label: "Timeline Comparison Fields"
+  }
+
+  dimension: as_of_date_value {
+    label: "As of Date Setting"
+    sql: {% as_of_date._parameter_value %} ;;
+    type: string
+  }
+
   parameter: size_of_range {
     description: "How many days in your period (trailng only)?"
     label: "Number of Trailing Days"
