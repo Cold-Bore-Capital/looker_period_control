@@ -465,7 +465,7 @@ dimension: current_date_dim {
 
   dimension: as_of_date_value {
     label: "As of Date Setting"
-    sql: {% as_of_date._parameter_value %} ;;
+    sql: {% parameter as_of_date %} ;;
     type: string
   }
 
