@@ -97,7 +97,7 @@ dimension: current_date_dim {
 
     date({% case comp_value %}
           {% when "trailing" or "default"%}
-            date_add('days', -(${size_of_range_dim}-1), ${current_date_dim})
+            date_add('days', -(${size_of_range_dim}), ${current_date_dim})
 
           {% when "trailing_30" %}
             date_add('days', -(30), ${current_date_dim})
