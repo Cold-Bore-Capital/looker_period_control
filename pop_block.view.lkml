@@ -51,6 +51,8 @@ dimension: current_date_dim {
     # convert_tz: no
   }
 
+
+
   dimension: period_1_start_display {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
