@@ -5,10 +5,19 @@ extension: required
 
 dimension: getdate_func {
   hidden: yes
-  description: "This only exists to be nested in the current_date dimension."
+  description: "This only exists to be nested in the current_date dimension. Having this field seperate allows for timezone conversion of the current date."
   type: date
   sql:getdate();;
   convert_tz: yes
+}
+
+dimension: getdate_or_user_set_date {
+  hidden: yes
+  description: "This dimension acts as a middle step allowing the use of a user selectable date for 'today' instead of the default result from getdate()"
+  type: date
+  convert_tz: no # Note that if TZ conversion is needed, it will have happened in the getdate_func dimension.
+  sql: case when date({% parameter as_of_date%}) = date(getdate()) then ${getdate_func} else {% parameter as_of_date%} end ;;
+
 }
 
 dimension: current_date_dim {
@@ -21,21 +30,22 @@ dimension: current_date_dim {
   sql:
   date({% case exclude_days._parameter_value %}
          {% when "999" %}
-            (select max(${origin_event_date}) from ${origin_table_name})
+            case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
+            else {% parameter as_of_date%} end
          {% when "1" %}
-            date_add('days', -1, ${getdate_func})
+            date_add('days', -1, ${getdate_or_user_set_date})
          {% when "2" %}
-            date_add('days', -2, ${getdate_func})
+            date_add('days', -2, ${getdate_or_user_set_date})
          {% when "start_of_week" %}
-            dateadd('days', -1, date_trunc('week', ${getdate_func}))
+            dateadd('days', -1, date_trunc('week', ${getdate_or_user_set_date}))
          {% when "start_of_month" %}
-            dateadd('days', -1, date_trunc('month', ${getdate_func}))
+            dateadd('days', -1, date_trunc('month', ${getdate_or_user_set_date}))
          {% when "start_of_quarter" %}
-            dateadd('days', -1, date_trunc('quarter', ${getdate_func}))
+            dateadd('days', -1, date_trunc('quarter', ${getdate_or_user_set_date}))
          {% when "start_of_year" %}
-            dateadd('days', -1, date_trunc('year', ${getdate_func}))
+            dateadd('days', -1, date_trunc('year', ${getdate_or_user_set_date}))
          {% else %}
-            ${getdate_func}
+            ${getdate_or_user_set_date}
        {% endcase %});;
     # convert_tz: no
   }
