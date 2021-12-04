@@ -16,7 +16,7 @@ dimension: getdate_or_user_set_date {
   description: "This dimension acts as a middle step allowing the use of a user selectable date for 'today' instead of the default result from getdate()"
   type: date
   convert_tz: no # Note that if TZ conversion is needed, it will have happened in the getdate_func dimension.
-  sql: case when date({% parameter as_of_date%}) = date(getdate()) then ${getdate_func} else {% parameter as_of_date%} end ;;
+  sql: case when date({% parameter as_of_date%}) = date(getdate()) or {% parameter as_of_date%} is null then ${getdate_func} else {% parameter as_of_date%} end ;;
 
 }
 
