@@ -42,7 +42,7 @@ dimension: current_date_dim {
 
   dimension: period_1_start_display {
     view_label: "Timeline Comparison Fields"
-    group_label: "Debugging"
+    group_label: "Period Display"
     type: date
     sql: ${period_1_start} ;;
     convert_tz: no
@@ -50,7 +50,7 @@ dimension: current_date_dim {
 
   dimension: period_1_end_display {
     view_label: "Timeline Comparison Fields"
-    group_label: "Debugging"
+    group_label: "Period Display"
     type: date
     sql: ${period_1_end} ;;
     convert_tz: no
@@ -58,7 +58,7 @@ dimension: current_date_dim {
 
   dimension: period_2_start_display {
     view_label: "Timeline Comparison Fields"
-    group_label: "Debugging"
+    group_label: "Period Display"
     type: date
     sql: ${period_2_start} ;;
     convert_tz: no
@@ -66,7 +66,7 @@ dimension: current_date_dim {
 
   dimension: period_2_end_display {
     view_label: "Timeline Comparison Fields"
-    group_label: "Debugging"
+    group_label: "Period Display"
     type: date
     sql: ${period_2_end} ;;
     convert_tz: no
@@ -958,7 +958,7 @@ dimension: current_date_dim {
   dimension: date_last_period {
     description: "This can be added as a hidden column to display the value of the date 2 periods ago. Only works for 2 periods ago."
     label: "Date Last Period"
-    group_label: "Debugging"
+    group_label: "Period Display"
     type: date
     sql: dateadd('day', ${day_in_period}, ${period_2_start}) ;;
     view_label: "Timeline Comparison Fields"
@@ -968,7 +968,7 @@ dimension: current_date_dim {
   dimension: date_3_period {
     description: "This can be added as a hidden column to display the value of the date 2 periods ago. Only works for 3 periods ago."
     label: "Date 3 Periods Ago"
-    group_label: "Debugging"
+    group_label: "Period Display"
     type: date
     sql: dateadd('day', ${day_in_period}, ${period_3_start}) ;;
     view_label: "Timeline Comparison Fields"
