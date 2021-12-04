@@ -465,8 +465,16 @@ dimension: current_date_dim {
 
   dimension: as_of_date_value {
     label: "As of Date Setting"
-    sql: {% parameter as_of_date %} ;;
+    sql:
+     {% if as_of_date._parameter_value == "now" | date: "%Y-%m-%d %}
+        yes
+     {% else %}
+        no
+      {% endif %}
+    ;;
+
     type: string
+    # {% parameter as_of_date %} ;;
   }
 
   parameter: size_of_range {
