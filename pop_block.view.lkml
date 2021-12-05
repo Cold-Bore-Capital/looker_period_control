@@ -314,25 +314,32 @@ dimension: current_date_dim {
   # Important note. This must be get_date, not current_date. current_date can't be timezone converted as it has no time. The system will assume midnight for the
   # conversion leading to bad results.
   sql:
-  date({% case exclude_days._parameter_value %}
-         {% when "999" %}
-            case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
-            else {% parameter as_of_date%} end
-         {% when "1" %}
-            date_add('days', -1, ${getdate_or_user_set_date})
-         {% when "2" %}
-            date_add('days', -2, ${getdate_or_user_set_date})
-         {% when "start_of_week" %}
-            dateadd('days', -1, date_trunc('week', ${getdate_or_user_set_date}))
-         {% when "start_of_month" %}
-            dateadd('days', -1, date_trunc('month', ${getdate_or_user_set_date}))
-         {% when "start_of_quarter" %}
-            dateadd('days', -1, date_trunc('quarter', ${getdate_or_user_set_date}))
-         {% when "start_of_year" %}
-            dateadd('days', -1, date_trunc('year', ${getdate_or_user_set_date}))
-         {% else %}
-            ${getdate_or_user_set_date}
-       {% endcase %});;
+  date(
+    {% if as_of_date._parameter_value == 'NULL' %}
+      {% case exclude_days._parameter_value %}
+           {% when "999" %}
+              case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
+              else {% parameter as_of_date%} end
+           {% when "1" %}
+              date_add('days', -1, ${getdate_or_user_set_date})
+           {% when "2" %}
+              date_add('days', -2, ${getdate_or_user_set_date})
+           {% when "start_of_week" %}
+              dateadd('days', -1, date_trunc('week', ${getdate_or_user_set_date}))
+           {% when "start_of_month" %}
+              dateadd('days', -1, date_trunc('month', ${getdate_or_user_set_date}))
+           {% when "start_of_quarter" %}
+              dateadd('days', -1, date_trunc('quarter', ${getdate_or_user_set_date}))
+           {% when "start_of_year" %}
+              dateadd('days', -1, date_trunc('year', ${getdate_or_user_set_date}))
+           {% else %}
+              ${getdate_or_user_set_date}
+         {% endcase %})
+      {% else %}
+        ${getdate_or_user_set_date}
+      {% endif %}
+
+      ;;
     # convert_tz: no
   }
 
