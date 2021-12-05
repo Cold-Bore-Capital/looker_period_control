@@ -8,7 +8,7 @@
 
 
 view: pop_block {
-#  label: "Timeline Comparison Fields"
+#  label: "Period over Period Block"
 
 extension: required
 
@@ -18,266 +18,309 @@ extension: required
 # 1. Create a setting option (set in the view), that allows for absolute time units to be turned on. A month with 30 days would be compared
 #    to a month with 31 days. A leap year would count as all 366 days.
 # 2. Get the timeline tile working so periods can be visualized.
+# 3. Research if it's possible to use the data validation tests as a form of unit test for the PoP block code. Check if dates are as expected, or if periods are same len.
 
 
 # *************************
 # Filters / Parameters
 # *************************
 
-  parameter: as_of_date {
-    label: "As of Date"
-    description: "Use this to change the value of the current date. Setting to a date will change the tile/dashboard to act as if today is the selected date."
-    type: date
-    group_label: "Dashboard User Selection"
-    view_label: "Timeline Comparison Fields"
+parameter: as_of_date {
+  label: "As of Date"
+  description: "Use this to change the value of the current date. Setting to a date will change the tile/dashboard to act as if today is the selected date."
+  type: date
+  group_label: "Dashboard User Selection"
+  view_label: "Period over Period Block"
+}
+
+parameter: size_of_range {
+  description: "How many days in your period (trailng only)?"
+  label: "Number of Trailing Days"
+  group_label: "Tile or Explore Filters"
+  type: unquoted
+  default_value: "0"
+  view_label: "Period over Period Block"
+}
+
+parameter: user_size_of_range {
+  description: "How many days in your period (trailng only)?"
+  label: "Number of Trailing Days"
+  group_label: "Dashboard User Selection"
+  type: unquoted
+  default_value: "0"
+  view_label: "Period over Period Block"
+}
+
+parameter: exclude_days {
+  description: "Select days to exclude"
+  label: "Exclude Days"
+  group_label: "Tile or Explore Filters"
+  view_label: "Period over Period Block"
+  type: unquoted
+  allowed_value: {
+    label: "No Exclude"
+    value: "0"
   }
-
-  parameter: size_of_range {
-    description: "How many days in your period (trailng only)?"
-    label: "Number of Trailing Days"
-    group_label: "Tile Only"
-    type: unquoted
-    default_value: "0"
-    view_label: "Timeline Comparison Fields"
+  allowed_value: {
+    label: "Exclude Current Day"
+    value: "1"
   }
-
-  parameter: user_size_of_range {
-    description: "How many days in your period (trailng only)?"
-    label: "Number of Trailing Days"
-    group_label: "Dashboard User Selection"
-    type: unquoted
-    default_value: "0"
-    view_label: "Timeline Comparison Fields"
+  allowed_value: {
+    label: "Exclude Yesterday"
+    value: "2"
   }
-
-  parameter: exclude_days {
-    description: "Select days to exclude"
-    label: "Exclude Days:"
-    group_label: "Tile Only"
-    view_label: "Timeline Comparison Fields"
-    type: unquoted
-    allowed_value: {
-      label: "No Exclude"
-      value: "0"
-    }
-    allowed_value: {
-      label: "Exclude Current Day"
-      value: "1"
-    }
-    allowed_value: {
-      label: "Exclude Yesterday"
-      value: "2"
-    }
-    allowed_value: {
-      label: "Last Data"
-      value: "999"
-    }
-    allowed_value: {
-      label: "End of Last Full Week"
-      value: "start_of_week"
-    }
-    allowed_value: {
-      label: "Start of Month"
-      value: "start_of_month"
-    }
-    allowed_value: {
-      label: "Start of Quarter"
-      value: "start_of_quarter"
-    }
-    allowed_value: {
-      label: "Start of Year"
-      value: "start_of_year"
-    }
-
-    default_value: "0"
+  allowed_value: {
+    label: "Last Data"
+    value: "999"
   }
-
-
-  parameter: compare_to {
-    label: "Compare to"
-    view_label: "Timeline Comparison Fields"
-    group_label: "Tile Only"
-    type: unquoted
-    allowed_value: {
-      label: "Select a Timeframe"
-      value: "none"
-    }
-    allowed_value: {
-      label: "Trailing"
-      value: "trailing"
-    }
-    allowed_value: {
-      label: "Trailing 30 Days"
-      value: "trailing_30"
-    }
-    allowed_value: {
-      label: "Trailing 90 Days"
-      value: "trailing_90"
-    }
-    allowed_value: {
-      label: "Trailing 180 Days"
-      value: "trailing_180"
-    }
-    allowed_value: {
-      label: "Trailing 365 Days"
-      value: "trailing_365"
-    }
-    allowed_value: {
-      label: "Trailing 30 Days vs Last Year"
-      value: "trailing_30_ly"
-    }
-    allowed_value: {
-      label: "Trailing 90 Days vs Last Year"
-      value: "trailing_90_ly"
-    }
-    allowed_value: {
-      label: "Trailing 180 Days vs Last Year"
-      value: "trailing_180_ly"
-    }
-    allowed_value: {
-      label: "MTD vs Prior Month"
-      value: "mtd_vs_prior_month"
-    }
-    allowed_value: {
-      label: "MTD vs Prior Quarter"
-      value: "mtd_vs_prior_quarter"
-    }
-    allowed_value: {
-      label: "MTD vs Prior Year"
-      value: "mtd_vs_prior_year"
-    }
-    allowed_value: {
-      label: "QTD vs Prior Quarter"
-      value: "qtd_vs_prior_quarter"
-    }
-    allowed_value: {
-      label: "QTD vs Prior Year"
-      value: "qtd_vs_prior_year"
-    }
-    allowed_value: {
-      label: "YTD vs Prior Year"
-      value: "ytd_vs_prior_year"
-    }
-    allowed_value: {
-      label: "Last Month Vs Two Months Ago"
-      value: "last_month_vs_two_months_ago"
-    }
-    allowed_value: {
-      label: "Last Quarter Vs Two Quarters Ago"
-      value: "last_quarter_vs_two_quarters_ago"
-    }
-    allowed_value: {
-      label: "Last Year vs Two Years Ago"
-      value: "last_year_vs_two_years_ago"
-    }
-    default_value: "none"
+  allowed_value: {
+    label: "End of Last Full Week"
+    value: "last_full_week"
   }
-
-
-  parameter: user_compare_to {
-    label: "PoP Selection"
-    view_label: "Timeline Comparison Fields"
-    group_label: "Dashboard User Selection"
-    type: unquoted
-    allowed_value: {
-      label: "Select a Timeframe"
-      value: "none"
-    }
-    allowed_value: {
-      label: "Trailing"
-      value: "trailing"
-    }
-    allowed_value: {
-      label: "Trailing 30 Days"
-      value: "trailing_30"
-    }
-    allowed_value: {
-      label: "Trailing 90 Days"
-      value: "trailing_90"
-    }
-    allowed_value: {
-      label: "Trailing 180 Days"
-      value: "trailing_180"
-    }
-    allowed_value: {
-      label: "Trailing 365 Days"
-      value: "trailing_365"
-    }
-    allowed_value: {
-      label: "Trailing 30 Days vs Last Year"
-      value: "trailing_30_ly"
-    }
-    allowed_value: {
-      label: "Trailing 90 Days vs Last Year"
-      value: "trailing_90_ly"
-    }
-    allowed_value: {
-      label: "Trailing 180 Days vs Last Year"
-      value: "trailing_180_ly"
-    }
-    allowed_value: {
-      label: "MTD vs Prior Month"
-      value: "mtd_vs_prior_month"
-    }
-    allowed_value: {
-      label: "MTD vs Prior Quarter"
-      value: "mtd_vs_prior_quarter"
-    }
-    allowed_value: {
-      label: "MTD vs Prior Year"
-      value: "mtd_vs_prior_year"
-    }
-    allowed_value: {
-      label: "QTD vs Prior Quarter"
-      value: "qtd_vs_prior_quarter"
-    }
-    allowed_value: {
-      label: "QTD vs Prior Year"
-      value: "qtd_vs_prior_year"
-    }
-    allowed_value: {
-      label: "YTD vs Prior Year"
-      value: "ytd_vs_prior_year"
-    }
-    allowed_value: {
-      label: "Last Month Vs Two Months Ago"
-      value: "last_month_vs_two_months_ago"
-    }
-    allowed_value: {
-      label: "Last Quarter Vs Two Quarters Ago"
-      value: "last_quarter_vs_two_quarters_ago"
-    }
-    allowed_value: {
-      label: "Last Year vs Two Years Ago"
-      value: "last_year_vs_two_years_ago"
-    }
-    default_value: "none"
+  allowed_value: {
+    label: "End of Last Full Month"
+    value: "last_full_month"
   }
-
-  parameter: comparison_periods {
-    label: "Number of Periods"
-    group_label: "Tile Only"
-    view_label: "Timeline Comparison Fields"
-    description: "Choose the number of periods you would like to compare - defaults to 2. Only works with templated periods from step 2."
-    type: number
-    allowed_value: {
-      label: "Select"
-      value: "none"
-    }
-    allowed_value: {
-      label: "2"
-      value: "2"
-    }
-    allowed_value: {
-      label: "3"
-      value: "3"
-    }
-    allowed_value: {
-      label: "4"
-      value: "4"
-    }
-    default_value: "none"
+  allowed_value: {
+    label: "End of Last Full Quarter"
+    value: "last_full_quarter"
   }
+  allowed_value: {
+    label: "End of Last Full Year"
+    value: "last_full_year"
+  }
+  default_value: "0"
+}
+
+
+# Dashboard version of Exclude Days filter
+parameter: user_exclude_days {
+  description: "Select days to exclude"
+  label: "Exclude Days"
+  group_label: "Dashboard User Selection"
+  view_label: "Period over Period Block"
+  type: unquoted
+  allowed_value: {
+    label: "No Exclude"
+    value: "0"
+  }
+  allowed_value: {
+    label: "Exclude Current Day"
+    value: "1"
+  }
+  allowed_value: {
+    label: "Exclude Yesterday"
+    value: "2"
+  }
+  allowed_value: {
+    label: "Last Data"
+    value: "999"
+  }
+  allowed_value: {
+    label: "End of Last Full Week"
+    value: "last_full_week"
+  }
+  allowed_value: {
+    label: "End of Last Full Month"
+    value: "last_full_month"
+  }
+  allowed_value: {
+    label: "End of Last Full Quarter"
+    value: "last_full_quarter"
+  }
+  allowed_value: {
+    label: "End of Last Full Year"
+    value: "last_full_year"
+  }
+  default_value: "0"
+}
+
+
+parameter: compare_to {
+  label: "Compare to"
+  view_label: "Period over Period Block"
+  group_label: "Tile or Explore Filters"
+  type: unquoted
+  allowed_value: {
+    label: "Select a Timeframe"
+    value: "none"
+  }
+  allowed_value: {
+    label: "Trailing"
+    value: "trailing"
+  }
+  allowed_value: {
+    label: "Trailing 30 Days"
+    value: "trailing_30"
+  }
+  allowed_value: {
+    label: "Trailing 90 Days"
+    value: "trailing_90"
+  }
+  allowed_value: {
+    label: "Trailing 180 Days"
+    value: "trailing_180"
+  }
+  allowed_value: {
+    label: "Trailing 365 Days"
+    value: "trailing_365"
+  }
+  allowed_value: {
+    label: "Trailing 30 Days vs Last Year"
+    value: "trailing_30_ly"
+  }
+  allowed_value: {
+    label: "Trailing 90 Days vs Last Year"
+    value: "trailing_90_ly"
+  }
+  allowed_value: {
+    label: "Trailing 180 Days vs Last Year"
+    value: "trailing_180_ly"
+  }
+  allowed_value: {
+    label: "MTD vs Prior Month"
+    value: "mtd_vs_prior_month"
+  }
+  allowed_value: {
+    label: "MTD vs Prior Quarter"
+    value: "mtd_vs_prior_quarter"
+  }
+  allowed_value: {
+    label: "MTD vs Prior Year"
+    value: "mtd_vs_prior_year"
+  }
+  allowed_value: {
+    label: "QTD vs Prior Quarter"
+    value: "qtd_vs_prior_quarter"
+  }
+  allowed_value: {
+    label: "QTD vs Prior Year"
+    value: "qtd_vs_prior_year"
+  }
+  allowed_value: {
+    label: "YTD vs Prior Year"
+    value: "ytd_vs_prior_year"
+  }
+  allowed_value: {
+    label: "Last Month Vs Two Months Ago"
+    value: "last_month_vs_two_months_ago"
+  }
+  allowed_value: {
+    label: "Last Quarter Vs Two Quarters Ago"
+    value: "last_quarter_vs_two_quarters_ago"
+  }
+  allowed_value: {
+    label: "Last Year vs Two Years Ago"
+    value: "last_year_vs_two_years_ago"
+  }
+  default_value: "none"
+}
+
+
+parameter: user_compare_to {
+  label: "PoP Selection"
+  view_label: "Period over Period Block"
+  group_label: "Dashboard User Selection"
+  type: unquoted
+  allowed_value: {
+    label: "Select a Timeframe"
+    value: "none"
+  }
+  allowed_value: {
+    label: "Trailing"
+    value: "trailing"
+  }
+  allowed_value: {
+    label: "Trailing 30 Days"
+    value: "trailing_30"
+  }
+  allowed_value: {
+    label: "Trailing 90 Days"
+    value: "trailing_90"
+  }
+  allowed_value: {
+    label: "Trailing 180 Days"
+    value: "trailing_180"
+  }
+  allowed_value: {
+    label: "Trailing 365 Days"
+    value: "trailing_365"
+  }
+  allowed_value: {
+    label: "Trailing 30 Days vs Last Year"
+    value: "trailing_30_ly"
+  }
+  allowed_value: {
+    label: "Trailing 90 Days vs Last Year"
+    value: "trailing_90_ly"
+  }
+  allowed_value: {
+    label: "Trailing 180 Days vs Last Year"
+    value: "trailing_180_ly"
+  }
+  allowed_value: {
+    label: "MTD vs Prior Month"
+    value: "mtd_vs_prior_month"
+  }
+  allowed_value: {
+    label: "MTD vs Prior Quarter"
+    value: "mtd_vs_prior_quarter"
+  }
+  allowed_value: {
+    label: "MTD vs Prior Year"
+    value: "mtd_vs_prior_year"
+  }
+  allowed_value: {
+    label: "QTD vs Prior Quarter"
+    value: "qtd_vs_prior_quarter"
+  }
+  allowed_value: {
+    label: "QTD vs Prior Year"
+    value: "qtd_vs_prior_year"
+  }
+  allowed_value: {
+    label: "YTD vs Prior Year"
+    value: "ytd_vs_prior_year"
+  }
+  allowed_value: {
+    label: "Last Month Vs Two Months Ago"
+    value: "last_month_vs_two_months_ago"
+  }
+  allowed_value: {
+    label: "Last Quarter Vs Two Quarters Ago"
+    value: "last_quarter_vs_two_quarters_ago"
+  }
+  allowed_value: {
+    label: "Last Year vs Two Years Ago"
+    value: "last_year_vs_two_years_ago"
+  }
+  default_value: "none"
+}
+
+parameter: comparison_periods {
+  label: "Number of Periods"
+  group_label: "Tile or Explore Filters"
+  view_label: "Period over Period Block"
+  description: "Choose the number of periods you would like to compare - defaults to 2. Only works with templated periods from step 2."
+  type: number
+  allowed_value: {
+    label: "Select"
+    value: "none"
+  }
+  allowed_value: {
+    label: "2"
+    value: "2"
+  }
+  allowed_value: {
+    label: "3"
+    value: "3"
+  }
+  allowed_value: {
+    label: "4"
+    value: "4"
+  }
+  default_value: "none"
+}
 
 # *************************
 # Related to "current date"
@@ -291,56 +334,51 @@ dimension: getdate_func {
   convert_tz: yes
 }
 
-dimension: getdate_or_user_set_date {
-  hidden: yes
-  description: "This dimension acts as a middle step allowing the use of a user selectable date for 'today' instead of the default result from getdate()"
-  type: date
-  convert_tz: no # Note that if TZ conversion is needed, it will have happened in the getdate_func dimension.
-  sql:  {% if as_of_date._parameter_value == 'NULL' %}
-          ${getdate_func}
-        {% else %}
-          {% parameter as_of_date%}
-        {% endif %} ;;
-
-  # sql: case when date({% parameter as_of_date%}) = date(getdate()) or {% parameter as_of_date%} is null then ${getdate_func} else {% parameter as_of_date%} end ;;
-
-}
-
 dimension: current_date_dim {
-  view_label: "Timeline Comparison Fields"
+  view_label: "Period over Period Block"
   description: "This field exists because of the way Looker handles timezone conversions. If the conversion occurs after dateadd things get wonky and you get extra days."
-  # type:
   hidden:  yes
   # Important note. This must be get_date, not current_date. current_date can't be timezone converted as it has no time. The system will assume midnight for the
   # conversion leading to bad results.
   sql:
-  date(
-    {% if as_of_date._parameter_value == 'NULL' %}
-      {% case exclude_days._parameter_value %}
-           {% when "999" %}
-              case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
-              else {% parameter as_of_date%} end
-           {% when "1" %}
-              date_add('days', -1, ${getdate_or_user_set_date})
-           {% when "2" %}
-              date_add('days', -2, ${getdate_or_user_set_date})
-           {% when "start_of_week" %}
-              dateadd('days', -1, date_trunc('week', ${getdate_or_user_set_date}))
-           {% when "start_of_month" %}
-              dateadd('days', -1, date_trunc('month', ${getdate_or_user_set_date}))
-           {% when "start_of_quarter" %}
-              dateadd('days', -1, date_trunc('quarter', ${getdate_or_user_set_date}))
-           {% when "start_of_year" %}
-              dateadd('days', -1, date_trunc('year', ${getdate_or_user_set_date}))
-           {% else %}
-              ${getdate_or_user_set_date}
-         {% endcase %})
-      {% else %}
-        ${getdate_or_user_set_date}
-      {% endif %}
+  {% if as_of_date._parameter_value == 'NULL' %}
+    {% assign today_val = ${getdate_func} %}
+  {% else %}
+    {% assign today_val = as_of_date._parameter_value %}
+  {% endif %}
 
-      ;;
-    # convert_tz: no
+  date(
+    {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value == 'NULL' or user_exclude_days._parameter_value == 'NULL') and (exclude_days._parameter_value == 'NULL' or exclude_days._parameter_value == 'NULL') %}
+      {% if exclude_days._user_parameter_value != 'NULL' %}
+        assign exclude_days_val = user_exclude_days._parameter_value
+      {% else %}
+        assign exclude_days_val = exclude_days._parameter_value
+      {% endif %}
+        {% case exclude_days._parameter_value %}
+         {% when "999" %}
+            -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
+            case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
+            else {% parameter as_of_date%} end
+         {% when "1" %}
+            date_add('days', -1, {{ today_val }})
+         {% when "2" %}
+            date_add('days', -2, {{ today_val }})
+         {% when "last_full_week" %}
+            dateadd('days', -1, date_trunc('week', {{ today_val }}))
+         {% when "last_full_month" %}
+            dateadd('days', -1, date_trunc('month', {{ today_val }}))
+         {% when "last_full_quarter" %}
+            dateadd('days', -1, date_trunc('quarter', {{ today_val }}))
+         {% when "last_full_year" %}
+            dateadd('days', -1, date_trunc('year', {{ today_val }}))
+         {% else %}
+            {{ today_val }}
+        {% endcase %}
+      {% else %}
+        -- If as_of_date, exclude_days, and user_exclude_days are null
+        {{ today_val }}
+      {% endif %});;
+
   }
 
 
@@ -349,15 +387,23 @@ dimension: current_date_dim {
   # *************************
 
   dimension: period_1_start_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_1_start} ;;
     convert_tz: no
   }
 
+  dimension: period_1_end_display {
+    view_label: "Period over Period Block"
+    group_label: "Period Display"
+    type: date
+    sql: ${period_1_end} ;;
+    convert_tz: no
+  }
+
   dimension_group: period_1_duration_timeframe {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: duration
     intervals: [day, week, month]
@@ -366,23 +412,15 @@ dimension: current_date_dim {
     convert_tz: no
   }
 
-  dimension: period_1_end_display {
-    view_label: "Timeline Comparison Fields"
-    group_label: "Period Display"
-    type: date
-    sql: ${period_1_end} ;;
-    convert_tz: no
-  }
-
   measure: period_1_len {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: number
     sql: datediff('days', ${period_1_start},${period_1_end}) ;;
   }
 
   dimension: period_2_start_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_2_start} ;;
@@ -390,7 +428,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_2_end_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_2_end} ;;
@@ -398,14 +436,14 @@ dimension: current_date_dim {
   }
 
   measure: period_2_len {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: number
     sql: datediff('days', ${period_2_start},${period_2_end}) ;;
   }
 
   dimension: period_3_start_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_3_start} ;;
@@ -413,7 +451,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_3_end_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_3_end} ;;
@@ -421,14 +459,14 @@ dimension: current_date_dim {
   }
 
   measure: period_3_len {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: number
     sql: datediff('days', ${period_3_start},${period_3_end}) ;;
   }
 
   dimension: period_4_start_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_4_start} ;;
@@ -436,7 +474,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_4_end_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: date
     sql: ${period_4_end} ;;
@@ -444,7 +482,7 @@ dimension: current_date_dim {
   }
 
   measure: period_4_len {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "Period Display"
     type: number
     sql: datediff('days', ${period_4_start},${period_4_end}) ;;
@@ -479,7 +517,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_explanation_display {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Use this with a single value type tile to display the current period block settings to the user."
     group_label: "Period Display"
     type: string
@@ -524,7 +562,7 @@ dimension: current_date_dim {
   }
 
   dimension: period {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     label: "Period Pivot"
     group_label: "Pivot Dimensions"
     description: "Pivot me! Returns the period the metric covers, i.e. either the 'This Period', 'Previous Period' or 'Last Year', '2 Years Ago'"
@@ -702,7 +740,7 @@ dimension: current_date_dim {
 # Someday - How to make date math using Liquid. https://stackoverflow.com/questions/21056965/date-math-manipulation-in-liquid-template-filter
 # Could use this to fill in the dates on the period labels!
 # dimension: period_with_dates {
-#   view_label: "Timeline Comparison Fields"
+#   view_label: "Period over Period Block"
 #   label: "Period Pivot With Dates"
 #   group_label: "Pivot Dimensions"
 #   description: "Pivot me! Returns the period the metric covers, i.e. either the 'This Period', 'Previous Period' or '3 Periods Ago'"
@@ -731,7 +769,7 @@ dimension: current_date_dim {
 
   dimension: order_for_period {
     hidden: yes
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     label: "Period"
     description: "Pivot me! Returns the period the metric covers, i.e. either the 'This Period', 'Previous Period' or '3 Periods Ago'"
     type: string
@@ -754,12 +792,12 @@ dimension: current_date_dim {
     type: time
     timeframes: [date, quarter, year, month, week, day_of_week,fiscal_month_num, fiscal_quarter, quarter_of_year]
     sql: dateadd('day', ${day_in_period}, ${period_1_start}) ;;
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     convert_tz: no
   }
 
   dimension: day_in_period {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     group_label: "X Axis Dimensions"
     description: "Gives the number of days since the start of each periods. Use this to align the event dates onto the same axis, the axes will read 1,2,3, etc."
     type: number
@@ -789,7 +827,7 @@ dimension: current_date_dim {
 
   dimension: period_1_start {
     label: "Period 1 Start"
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the start of the current period"
     type: date_raw
     hidden:  yes
@@ -839,7 +877,7 @@ dimension: current_date_dim {
 
   dimension: period_1_end {
     label: "Period 1 End"
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the end of the current period"
     type: date_raw
     hidden:  yes
@@ -867,7 +905,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_2_start {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the start of the previous period"
     type: date_raw
     hidden:  yes
@@ -928,7 +966,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_2_end {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the end of the previous period"
     type: date_raw
     hidden:  yes
@@ -956,7 +994,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_3_start {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the start of 2 periods ago"
     type: date_raw
     sql:
@@ -1018,7 +1056,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_3_end {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the end of 2 periods ago"
     type: date_raw
     sql:
@@ -1050,7 +1088,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_4_start {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the start of 4 periods ago"
     type: date_raw
     sql:
@@ -1111,7 +1149,7 @@ dimension: current_date_dim {
   }
 
   dimension: period_4_end {
-    view_label: "Timeline Comparison Fields"
+    view_label: "Period over Period Block"
     description: "Calculates the end of 4 periods ago"
     type: date_raw
     sql:
