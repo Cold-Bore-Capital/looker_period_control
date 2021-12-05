@@ -1,8 +1,23 @@
+# Copyright 2021 Cold Bore Capital Management, LLC
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 
 view: pop_block {
 #  label: "Timeline Comparison Fields"
 
 extension: required
+
+# *********
+# Ideas / To-Do List:
+#
+# 1. Create a setting option (set in the view), that allows for absolute time units to be turned on. A month with 30 days would be compared
+#    to a month with 31 days. A leap year would count as all 366 days.
+# 2. Get the timeline tile working so periods can be visualized.
 
 
 # *************************
@@ -334,6 +349,16 @@ dimension: current_date_dim {
     convert_tz: no
   }
 
+  dimension_group: period_1_duration_timeframe {
+    view_label: "Timeline Comparison Fields"
+    group_label: "Period Display"
+    type: duration
+    intervals: [day, week, month]
+    sql_start: ${period_1_start} ;;
+    sql_end: ${period_1_end} ;;
+    convert_tz: no
+  }
+
   dimension: period_1_end_display {
     view_label: "Timeline Comparison Fields"
     group_label: "Period Display"
@@ -512,7 +537,7 @@ dimension: current_date_dim {
                   {% assign comp_value = compare_to._parameter_value  %}
               {% endif %}
             {% case comp_value %}
-              {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"  or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" " %}
+              {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"  or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 'This Period'
 
               {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year"  %}
