@@ -33,7 +33,7 @@ view: pop_block {
   }
 
   parameter: size_of_range {
-    description: "How many days in your period (trailng only)?"
+    description: "How many days in your period (trailing only)?"
     label: "Number of Trailing Days"
     group_label: "Tile or Explore Filters"
     type: unquoted
@@ -42,7 +42,7 @@ view: pop_block {
   }
 
   parameter: user_size_of_range {
-    description: "How many days in your period (trailng only)?"
+    description: "How many days in your period (trailing only)?"
     label: "Number of Trailing Days"
     group_label: "Dashboard User Selection"
     type: unquoted
@@ -135,7 +135,7 @@ view: pop_block {
 
 
   parameter: compare_to {
-    label: "Period Selection"
+    label: "Tile Period Selection"
     view_label: "@{block_field_name}"
     group_label: "Tile or Explore Filters"
     type: unquoted
@@ -350,34 +350,34 @@ view: pop_block {
       date(
         {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value == 'NULL' or user_exclude_days._parameter_value == 'NULL') and (exclude_days._parameter_value == 'NULL' or exclude_days._parameter_value == 'NULL') %}
           {% if exclude_days._user_parameter_value != 'NULL' %}
-            assign exclude_days_val = user_exclude_days._parameter_value
+              assign exclude_days_val = user_exclude_days._parameter_value
           {% else %}
-            assign exclude_days_val = exclude_days._parameter_value
+              assign exclude_days_val = exclude_days._parameter_value
           {% endif %}
-            {% case exclude_days._parameter_value %}
-             {% when "999" %}
-                -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
-                case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
-                else {% parameter as_of_date%} end
-             {% when "1" %}
-                date_add('days', -1, {{ today_val }})
-             {% when "2" %}
-                date_add('days', -2, {{ today_val }})
-             {% when "last_full_week" %}
-                dateadd('days', -1, date_trunc('week', {{ today_val }}))
-             {% when "last_full_month" %}
-                dateadd('days', -1, date_trunc('month', {{ today_val }}))
-             {% when "last_full_quarter" %}
-                dateadd('days', -1, date_trunc('quarter', {{ today_val }}))
-             {% when "last_full_year" %}
-                dateadd('days', -1, date_trunc('year', {{ today_val }}))
-             {% else %}
-                {{ today_val }}
-            {% endcase %}
-          {% else %}
+          {% case exclude_days._parameter_value %}
+           {% when "999" %}
+              -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
+              case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
+              else {% parameter as_of_date%} end
+           {% when "1" %}
+              date_add('days', -1, {{ today_val }})
+           {% when "2" %}
+              date_add('days', -2, {{ today_val }})
+           {% when "last_full_week" %}
+              dateadd('days', -1, date_trunc('week', {{ today_val }}))
+           {% when "last_full_month" %}
+              dateadd('days', -1, date_trunc('month', {{ today_val }}))
+           {% when "last_full_quarter" %}
+              dateadd('days', -1, date_trunc('quarter', {{ today_val }}))
+           {% when "last_full_year" %}
+              dateadd('days', -1, date_trunc('year', {{ today_val }}))
+           {% else %}
+              {{ today_val }}
+          {% endcase %}
+        {% else %}
             -- If as_of_date, exclude_days, and user_exclude_days are null
             {{ today_val }}
-          {% endif %});;
+        {% endif %});;
     }
 
 

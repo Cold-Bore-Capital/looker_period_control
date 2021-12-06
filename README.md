@@ -39,7 +39,19 @@ To use the PoP block, you must first import the project. Adding the following co
         url: "https://github.com/Cold-Bore-Capital/looker_pop_block"
         ref: "master"
      }
-Given the state of the project, using a git commit hash is likely a lot safer than using master. Breaking changes may cause problems in the master branch. Looker is supposed to allow the use of a tag in `ref`, but this feature appears broken. Tags for each release are still provided.
+Given the development maturity of the project, using a git commit hash is likely a lot safer than using master. Breaking changes may cause problems in the master branch. Looker is supposed to allow the use of a tag in `ref`, but this feature appears broken. Tags for each release are still provided.
+
+#### Constants Override
+Currently, there is only one option set by constant during import, the name of the project. The project name changes how the project displays in the field list. Currently, this is set to `Z - PoP Block` so that it will sort at the bottom of the field list. You can change this by overriding the constant.
+
+    remote_dependency: pop_block {
+        url: "https://github.com/Cold-Bore-Capital/looker_pop_block"
+        ref: "master"
+        override_constant: block_field_name {
+            value: "New Name for Project in Field List"
+          }
+     }
+
 
 ### Model
 The PoP block uses the `sql_always_where` attribute of the explore to inject the necessary filters. The name of the view must be added to the top four variables.
@@ -148,8 +160,11 @@ To create single value cards with change, use the pivot option.
 ![Single Value Card Example of Pivot](docs/single_value_card_example.png)
 
 In this example, the field is used as an X Axis dimension. 
-![Used as an x axis dimension instead example](!docs/pivot_used_as_x_axis.png)
+![Used as an x axis dimension instead example](docs/pivot_used_as_x_axis_example.png)
 
 #### Step 3: Set X-Axis (if not selected in step 2)
 
+There are two options for the X Axis
+
+1. Select one of the time range values from `Date in Period` such as `Date in Period Date` to display some grouping level of dates. This
 
