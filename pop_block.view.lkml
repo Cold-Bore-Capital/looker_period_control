@@ -524,6 +524,8 @@ view: pop_block {
           'Last Quarter vs Two Quarters Ago'
         {% when "last_year_vs_two_years_ago" %}
           'Last Year vs Two Years Ago'
+        {% else %}
+          'No Period Selected'
       {% endcase %};;
     }
 
