@@ -338,11 +338,12 @@ view: pop_block {
 
   dimension: post_as_of_date {
     hidden: yes
+    type: date
     sql:
       {% if as_of_date._parameter_value == 'NULL' %}
          ${getdate_func}
       {% else %}
-        {{ parameter as_of_date }
+        {% parameter as_of_date %}
       {% endif %};;
     convert_tz: no
   }
