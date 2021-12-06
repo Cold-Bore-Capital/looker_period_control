@@ -164,7 +164,16 @@ In this example, the field is used as an X Axis dimension.
 
 #### Step 3: Set X-Axis (if not selected in step 2)
 
-There are two options for the X Axis
+There are two options for the X Axis:
 
-1. Select one of the time range values from `Date in Period` such as `Date in Period Date` to display some grouping level of dates. This
+1. Select one of the time range values from `Date in Period` such as `Date in Period Date` to display some grouping level of dates. 
+2. Select `Day in Period` for a relative 1, 2, 3, 4 style X Axis. 
+
+### Usage in Dashboards 
+The PoP block can be used to filter an entire dashboard. Filters added at the dashboard level take priority over filters set at the tile level. If no filter is set at the dashboard level for an option, the filters set in the tile will take precedence.
+
+#### Filtering Non-PoP Tiles.
+In addition to setting period over period options on a dashboard level, it will also filter any non PoP charts to the limit of Period 1's range. 
+
+The `Exclude Days` filter will also function on non-PoP charts and can be used independently of any other option or filter.
 
