@@ -128,13 +128,28 @@ Important note, when using the PoP block, it's important to use the time series 
 
 Once joined in the view, the PoP block will add a section named *to the fields list of any tile or explore.
 
+![PoP Block Name Example](docs/period_over_period_block_name_example.png)
+
 ### Usage in Tile or Explore
 
 #### Step 1: Set Filters
 To use the PoP block in a tile or explore, add all four filters under the `Filters - Tile or Explore` section. At a minimum you need to set an option for the `Period Selection`, and `Number of Periods` filters.
 
+![Tile or Explore Filter Examples](docs/tile_or_explore_filters.png)
+
 #### Step 2: Set Period Pivot or Use Period as X-Axis
 
 You can either pivot on the `Period Pivot` field, or add it as an X Axis for use is something like a single value tile with "Compare to" feature turned on.
 
+In this example the `Period Pivot` field is used as a pivot. 
+![Pivot Example](docs/pivot_example.png)
+
+To create single value cards with change, use the pivot option. 
+![Single Value Card Example of Pivot](docs/single_value_card_example.png)
+
+In this example, the field is used as an X Axis dimension. 
+![Used as an x axis dimension instead example](!docs/pivot_used_as_x_axis.png)
+
 #### Step 3: Set X-Axis (if not selected in step 2)
+
+
