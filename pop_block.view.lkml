@@ -336,19 +336,25 @@ view: pop_block {
     convert_tz: yes
   }
 
+  dimension: post_as_of_date {
+    hidden: yes
+    sql:
+      {% if as_of_date._parameter_value == 'NULL' %}
+         ${getdate_func}
+      {% else %}
+        {{ parameter as_of_date }
+      {% endif %};;
+    convert_tz: no
+  }
+
   dimension: current_date_dim {
     ##
     # This will return the date to be used as the end date for Period 1 with "exclude days" filters or "as date" options applied
     hidden:  yes
     sql:
-      {% if as_of_date._parameter_value == 'NULL' %}
-        {% assign today_val = ${getdate_func} %}
-      {% else %}
-        {% assign today_val = as_of_date._parameter_value %}
-      {% endif %}
-
       date(
-        {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value == 'NULL' or user_exclude_days._parameter_value == 'NULL') and (exclude_days._parameter_value == 'NULL' or exclude_days._parameter_value == 'NULL') %}
+        {% if as_of_date._parameter_value == 'NULL' %}
+        --  and (user_exclude_days._parameter_value == 'NULL' or user_exclude_days._parameter_value == 'NULL') and (exclude_days._parameter_value == 'NULL' or exclude_days._parameter_value == 'NULL')
           {% if exclude_days._user_parameter_value != 'NULL' %}
               assign exclude_days_val = user_exclude_days._parameter_value
           {% else %}
@@ -357,28 +363,34 @@ view: pop_block {
           {% case exclude_days._parameter_value %}
            {% when "999" %}
               -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
-              case when date({% parameter as_of_date%}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
+              case when date({% parameter as_of_date %}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
               else {% parameter as_of_date%} end
            {% when "1" %}
-              date_add('days', -1, {{ today_val }})
+              dateadd('days', -1, ${post_as_of_date})
            {% when "2" %}
-              date_add('days', -2, {{ today_val }})
+              dateadd('days', -2, ${post_as_of_date})
            {% when "last_full_week" %}
-              dateadd('days', -1, date_trunc('week', {{ today_val }}))
+              dateadd('days', -1, date_trunc('week', ${post_as_of_date}))
            {% when "last_full_month" %}
-              dateadd('days', -1, date_trunc('month', {{ today_val }}))
+              dateadd('days', -1, date_trunc('month', ${post_as_of_date}))
            {% when "last_full_quarter" %}
-              dateadd('days', -1, date_trunc('quarter', {{ today_val }}))
+              dateadd('days', -1, date_trunc('quarter', ${post_as_of_date}))
            {% when "last_full_year" %}
-              dateadd('days', -1, date_trunc('year', {{ today_val }}))
-           {% else %}
-              {{ today_val }}
+              dateadd('days', -1, date_trunc('year', ${post_as_of_date}))
+               {% else %}
+              ${post_as_of_date}
+
           {% endcase %}
+
         {% else %}
             -- If as_of_date, exclude_days, and user_exclude_days are null
-            {{ today_val }}
-        {% endif %});;
-    }
+            ${post_as_of_date}
+        {% endif %}
+        )
+        ;;
+  }
+
+
 
 
     # *************************
