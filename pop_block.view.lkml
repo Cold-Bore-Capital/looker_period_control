@@ -354,7 +354,7 @@ view: pop_block {
     hidden:  yes
     sql:
       date(
-        {% if as_of_date._parameter_value == 'NULL' and user_exclude_days._parameter_value == 'NULL' exclude_days._parameter_value == 'NULL' %}
+        {% if as_of_date._parameter_value == 'NULL' and user_exclude_days._parameter_value == 'NULL' and exclude_days._parameter_value == 'NULL' %}
           {% if exclude_days._user_parameter_value != 'NULL' %}
               {% assign exclude_days_val = user_exclude_days._parameter_value %}
           {% else %}
@@ -383,7 +383,7 @@ view: pop_block {
           {% endcase %}
 
         {% else %}
-            -- If as_of_date, exclude_days, and user_exclude_days are null
+            -- If as_of_date, exclude_days, and user_exclude_days are null {% parameter user_exclude_days %}
             ${post_as_of_date}
         {% endif %}
         )
