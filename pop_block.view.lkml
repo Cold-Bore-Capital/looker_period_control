@@ -52,7 +52,7 @@ view: pop_block {
 
   parameter: exclude_days {
     description: "Select days to exclude"
-    label: "Exclude Days"
+    label: "Tile Exclude Days"
     group_label: "Tile or Explore Filters"
     view_label: "@{block_field_name}"
     type: unquoted
@@ -355,22 +355,25 @@ view: pop_block {
     sql:
       date(
         {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value != 'NULL' or exclude_days._parameter_value != 'NULL') %}
+          -- debug a
           {% if exclude_days._user_parameter_value != 'NULL' %}
+          -- debug b
               {% assign exclude_days_val = user_exclude_days._parameter_value %}
           {% else %}
+          -- debug c
               {% assign exclude_days_val = exclude_days._parameter_value %}
           {% endif %}
-          {% case exclude_days._parameter_value %}
+          {% case exclude_days_val %}
            {% when "999" %}
               -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
               case when date({% parameter as_of_date %}) = date(getdate()) then (select max(${origin_event_date}) from ${origin_table_name})
               else {% parameter as_of_date%} end
            {% when "1" %}
-              dateadd('days', -1, ${post_as_of_date})
+              dateadd('days', -1, ${post_as_of_date}) -- One day exclude
            {% when "2" %}
-              dateadd('days', -2, ${post_as_of_date})
+              dateadd('days', -2, ${post_as_of_date}) -- Two days exclude
            {% when "last_full_week" %}
-              dateadd('days', -1, date_trunc('week', ${post_as_of_date}))
+              dateadd('days', -1, date_trunc('week', ${post_as_of_date})) -- Last full week
            {% when "last_full_month" %}
               dateadd('days', -1, date_trunc('month', ${post_as_of_date}))
            {% when "last_full_quarter" %}
@@ -378,7 +381,7 @@ view: pop_block {
            {% when "last_full_year" %}
               dateadd('days', -1, date_trunc('year', ${post_as_of_date}))
                {% else %}
-              ${post_as_of_date}
+              ${post_as_of_date} -- No cases matched
 
           {% endcase %}
 
