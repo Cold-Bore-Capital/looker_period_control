@@ -341,10 +341,14 @@ view: pop_block {
     type: date
     sql:
       {% if as_of_date._parameter_value == 'NULL' %}
-         ${getdate_func}
+         {% assign crash_me = ${getdate_func} %}
       {% else %}
-        {% parameter as_of_date %}
-      {% endif %};;
+        {% assign crash_me = as_of_date._parameter_value %}
+      {% endif %}
+
+      {{ crash_me }}
+      ;;
+
     convert_tz: no
   }
 
