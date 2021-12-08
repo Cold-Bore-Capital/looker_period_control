@@ -98,7 +98,7 @@ Within the view the project must be imported.
 Several special fields must be set within the view. This is example is from a PDT. While the PoP block can be used with any view, it was specifically designed with PDTs in mind as they are a far better way to do business.
 
     #----------- START POP BLOCK -----------
-    extends: [pop_block, completed_time_block_filter]
+    extends: [pop_block]
 
     # The event date must be set to whatever main time series dimension_group is in use by the view.
     # It's very important to set convert_tz to no if you have only a date with no time value.
@@ -153,27 +153,26 @@ To use the PoP block in a tile or explore, add all four filters under the `Filte
 
 You can either pivot on the `Period Pivot` field, or add it as an X Axis for use is something like a single value tile with "Compare to" feature turned on.
 
-In this example the `Period Pivot` field is used as a pivot. 
+In this example the `Period Pivot` field is used as a pivot.
 ![Pivot Example](docs/pivot_example.png)
 
-To create single value cards with change, use the pivot option. 
+To create single value cards with change, use the pivot option.
 ![Single Value Card Example of Pivot](docs/single_value_card_example.png)
 
-In this example, the field is used as an X Axis dimension. 
+In this example, the field is used as an X Axis dimension.
 ![Used as an x axis dimension instead example](docs/pivot_used_as_x_axis_example.png)
 
 #### Step 3: Set X-Axis (if not selected in step 2)
 
 There are two options for the X Axis:
 
-1. Select one of the time range values from `Date in Period` such as `Date in Period Date` to display some grouping level of dates. 
-2. Select `Day in Period` for a relative 1, 2, 3, 4 style X Axis. 
+1. Select one of the time range values from `Date in Period` such as `Date in Period Date` to display some grouping level of dates.
+2. Select `Day in Period` for a relative 1, 2, 3, 4 style X Axis.
 
-### Usage in Dashboards 
+### Usage in Dashboards
 The PoP block can be used to filter an entire dashboard. Filters added at the dashboard level take priority over filters set at the tile level. If no filter is set at the dashboard level for an option, the filters set in the tile will take precedence.
 
 #### Filtering Non-PoP Tiles.
-In addition to setting period over period options on a dashboard level, it will also filter any non PoP charts to the limit of Period 1's range. 
+In addition to setting period over period options on a dashboard level, it will also filter any non PoP charts to the limit of Period 1's range.
 
 The `Exclude Days` filter will also function on non-PoP charts and can be used independently of any other option or filter.
-
