@@ -1196,4 +1196,38 @@ view: pop_block {
     }
 
 
+    # **********************
+    # SQL Always Where
+
+    dimension: sql_always_where_inject {
+      hidden: yes
+      sql:
+          {% assign comp_val_set = compare_to._parameter_value %}
+          {% assign user_comp_val_set = user_compare_to._parameter_value %}
+          {% assign period_count = comparison_periods._parameter_value %}
+          {% assign exclude_days_val = exclude_days._parameter_value %}
+              {% if comp_val_set != "none" or user_comp_val_set != "none" %}
+                {% case period_count %}
+                  {% when 'none' %}
+                    (${event_date} between ${period_1_start} and ${period_1_end})
+                  {% when '2' %}
+                    ((${event_date} between ${period_1_start} and ${period_1_end})
+                    or (${event_date} between ${period_2_start} and ${period_2_end}))
+                  {% when '3' %}
+                    ((${event_date} between ${period_1_start} and ${period_1_end})
+                    or (${event_date} between ${period_2_start} and ${period_2_end})
+                    or (${event_date} between ${period_3_start} and ${period_3_end}))
+                  {% when '4' %}
+                    ((${event_date} between ${period_1_start} and ${period_1_end})
+                    or (${event_date} between ${period_2_start} and ${period_2_end})
+                    or (${event_date} between ${period_3_start} and ${period_3_end})
+                    or (${event_date} between ${period_4_start} and ${period_4_end}))
+                {% endcase %}
+              {% else %}
+                -- PoP Block is not in use. Default to 1=1 to avoid errors.
+                1 = 1
+              {% endif %};;
+    }
+
+
   }
