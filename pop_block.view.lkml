@@ -328,6 +328,14 @@ view: pop_block {
     default_value: "none"
   }
 
+  parameter: display_dates_in_trailing_periods {
+    group_label: "Tile or Explore Filters"
+    view_label: "@{block_field_name}"
+    description: "Display the dates alongside the periods. For example 'Current Period - 2021-01-01 to 2021-04-01'. Note that this will cause any custom colors set for the series to break when the dates change (i.e. the next day)."
+    type: yesno
+    default_value: "No"
+  }
+
 # *************************
 # Related to "current date"
 # *************************
@@ -610,7 +618,7 @@ view: pop_block {
       # || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
       # || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
       sql:
-      -- Do I exist?
+      -- Do I exist?  {% parameter display_dates_in_trailing_periods %}
       case
            when ${event_date} between ${period_1_start} and ${period_1_end} then
               {% if user_compare_to._parameter_value != "none" %}
@@ -622,7 +630,11 @@ view: pop_block {
             {% case comp_value %}
 
               {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"  or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
+                {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
+                  'This Period (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
+                {% else %}
                 'This Period'
+                {% endif %}
 
               {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year"  %}
                 'MTD - This Month'
@@ -653,7 +665,11 @@ view: pop_block {
           {% endif %}
             {% case comp_value %}
               {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" or "yoy" %}
+                {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
+                  'Prior Period (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
+                {% else %}
                 'Prior Period'
+                {% endif %}
 
               {% when "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 'Prior Year'
@@ -695,7 +711,12 @@ view: pop_block {
           {% endif %}
             {% case comp_value %}
               {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" or "yoy" %}
-                'Two Periods Ago'
+                {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
+                  'Two Periods Ago (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
+                {% else %}
+                  'Two Periods Ago'
+                {% endif %}
+
 
                 {% when "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 'Two Years Ago'
@@ -732,13 +753,18 @@ view: pop_block {
         {% if comparison_periods._parameter_value == "4" %}
           when ${event_date} between ${period_4_start} and ${period_4_end} then
             {% if user_compare_to._parameter_value != "none" %}
-              {% assign comp_value = user_compare_to._parameter_value  %}
+              {% assign comp_value = user_compare_to._parameter_value == 'true' %}
           {% else  %}
               {% assign comp_value = compare_to._parameter_value  %}
           {% endif %}
             {% case comp_value %}
               {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" or "yoy" %}
-                'Three Periods Ago'
+                {% if display_dates_in_trailing_periods._parameter_value %}
+                  'Three Periods Ago (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
+                {% else %}
+                  'Three Periods Ago'
+                {% endif %}
+
 
                 {% when "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 'Three Years Ago'
