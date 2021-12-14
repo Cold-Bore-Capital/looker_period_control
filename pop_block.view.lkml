@@ -363,10 +363,6 @@ view: pop_block {
     sql:
       date(
         {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value != '0' or exclude_days._parameter_value != '0') %}
-          -- debug states:
-          -- as_of_date: {% parameter as_of_date %}
-          -- user_exclude_days: {% parameter user_exclude_days %}
-          -- exclude_days: {% parameter exclude_days %}
           {% if user_exclude_days._parameter_value != '0' %}
               {% assign exclude_days_val = user_exclude_days._parameter_value %}
           {% else %}
@@ -613,14 +609,18 @@ view: pop_block {
       # || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
       # || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
       # || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
-      sql:   case
+      sql:
+      -- Do I exist?
+      case
            when ${event_date} between ${period_1_start} and ${period_1_end} then
               {% if user_compare_to._parameter_value != "none" %}
                   {% assign comp_value = user_compare_to._parameter_value  %}
               {% else  %}
                   {% assign comp_value = compare_to._parameter_value  %}
               {% endif %}
+
             {% case comp_value %}
+
               {% when "trailing" or "default" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"  or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 'This Period'
 
@@ -642,6 +642,7 @@ view: pop_block {
               {% when "last_year_vs_two_years_ago" %}
                 'Last Year'
             {% endcase %}
+             -- Debug: comp_value - {{ comp_value }}
 
 
            when ${event_date} between ${period_2_start} and ${period_2_end} then
