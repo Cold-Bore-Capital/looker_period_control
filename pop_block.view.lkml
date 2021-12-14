@@ -362,13 +362,14 @@ view: pop_block {
     hidden:  yes
     sql:
       date(
-        {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value != 'NULL' or exclude_days._parameter_value != 'NULL') %}
-          -- debug a
-          {% if exclude_days._user_parameter_value != 'NULL' %}
-          -- debug b
+        {% if as_of_date._parameter_value == 'NULL' and (user_exclude_days._parameter_value != '0' or exclude_days._parameter_value != '0') %}
+          -- debug states:
+          -- as_of_date: {% parameter as_of_date %}
+          -- user_exclude_days: {% parameter user_exclude_days %}
+          -- exclude_days: {% parameter exclude_days %}
+          {% if user_exclude_days._parameter_value != '0' %}
               {% assign exclude_days_val = user_exclude_days._parameter_value %}
           {% else %}
-          -- debug c
               {% assign exclude_days_val = exclude_days._parameter_value %}
           {% endif %}
           {% case exclude_days_val %}
