@@ -1,4 +1,4 @@
-# Copyright 2021 Cold Bore Capital Management, LLC
+# Copyright 2022 Cold Bore Capital Management, LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
 # documentation files (the "Software"), to deal in the Software without restriction, including without
@@ -1231,7 +1231,7 @@ view: pop_block {
                   dateadd('days', (datediff('days', ${period_3_start}, ${period_3_end})), ${period_4_start})
                   {% when "wtd_vs_prior_week" or "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year" or "ytd_vs_prior_year" %}
                     dateadd('days', (datediff('days', ${period_3_start}, ${period_3_end})), ${period_4_start})
-                  {% when "last_month_vs_two_months_ago" or "last_quarter_vs_two_quarters_ago" or "last_year_vs_two_years_ago" %}
+                  {% when "last_week_vs_two_weeks_ago" or "last_month_vs_two_months_ago" or "last_quarter_vs_two_quarters_ago" or "last_year_vs_two_years_ago" %}
                     dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_end})
                 {% endcase %});;
       hidden: yes
