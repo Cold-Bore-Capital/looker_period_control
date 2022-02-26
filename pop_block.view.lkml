@@ -158,6 +158,78 @@ view: pop_block {
     default_value: "0"
   }
 
+  parameter: tile_snap_start_date_to {
+    label: "Tile: Snap Start Date to"
+    description: "Setting this filter will ensure that the start date includes the begining of the selected period. For example, if you selected trailing 365, the first month might be partial. Selecting snap to month would ensure a complete first month."
+    view_label: "@{block_field_name}"
+    group_label: "Tile or Explore Filters"
+    type: unquoted
+    allowed_value: {
+      label: "Select a Snap Type"
+      value: "none"
+    }
+    allowed_value: {
+      label: "Week"
+      value: "week"
+    }
+    allowed_value: {
+      label: "Month"
+      value: "month"
+    }
+    allowed_value: {
+      label: "Quarter"
+      value: "quarter"
+    }
+    allowed_value: {
+      label: "Year"
+      value: "year"
+    }
+    default_value: "none"
+  }
+
+
+  parameter: user_snap_start_date_to {
+    label: "Snap Start Date to"
+    description: "Setting this filter will ensure that the start date includes the begining of the selected period. For example, if you selected trailing 365, the first month might be partial. Selecting snap to month would ensure a complete first month."
+    view_label: "@{block_field_name}"
+    group_label: "Dashboard User Selection"
+    type: unquoted
+    allowed_value: {
+      label: "Select a Snap Type"
+      value: "none"
+    }
+    allowed_value: {
+      label: "Week"
+      value: "week"
+    }
+    allowed_value: {
+      label: "Month"
+      value: "month"
+    }
+    allowed_value: {
+      label: "Quarter"
+      value: "quarter"
+    }
+    allowed_value: {
+      label: "Year"
+      value: "year"
+    }
+    default_value: "none"
+  }
+
+  dimension: snap_dim {
+    # Allows for output of snap to value
+    hidden: yes
+    type: string
+    sql:
+    {% if user_snap_start_date_to._parameter_value != "none" %}
+      '{% parameter user_snap_start_date_to %}'
+    {% elsif tile_snap_start_date_to._parameter_value != "none" %}
+      '{% parameter tile_snap_start_date_to %}'
+    {% endif %}
+    ;;
+  }
+
 
   parameter: compare_to {
     label: "Tile Period Selection"
@@ -940,6 +1012,13 @@ view: pop_block {
             {% assign comp_value = compare_to._parameter_value  %}
         {% endif %}
 
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+        {% comment %}
+        -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
+        {% endcomment %}
+            date_trunc(${snap_dim},
+        {% endif %}
+
         date({% case comp_value %}
               {% when "trailing" or "default"%}
                 date_add('days', -(${size_of_range_dim}), ${current_date_dim})
@@ -980,8 +1059,17 @@ view: pop_block {
               {% when "last_year_vs_two_years_ago" %}
                 date_trunc('year', dateadd('year', -1, ${current_date_dim}))
 
-            {% endcase %});;
+            {% endcase %})
+
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          )
+          {% comment %}
+          -- close the snap to function
+          {% endcomment %}
+        {% endif %}
+        ;;
     }
+
 
     dimension: period_1_end {
       hidden:  yes
@@ -1023,6 +1111,14 @@ view: pop_block {
         {% else  %}
             {% assign comp_value = compare_to._parameter_value  %}
         {% endif %}
+
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          {% comment %}
+          -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
+          {% endcomment %}
+            date_trunc(${snap_dim},
+        {% endif %}
+
         date({% case comp_value %}
 
               {% when "trailing" or "default"  %}
@@ -1076,7 +1172,15 @@ view: pop_block {
               {% when "last_year_vs_two_years_ago" %}
                 dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_start})
 
-            {% endcase %});;
+            {% endcase %})
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          )
+          {% comment %}
+          -- close the snap to function
+          {% endcomment %}
+        {% endif %}
+
+        ;;
     }
 
     dimension: period_2_end {
@@ -1114,6 +1218,13 @@ view: pop_block {
               {% assign comp_value = compare_to._parameter_value  %}
           {% endif %}
 
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          {% comment %}
+          -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
+          {% endcomment %}
+            date_trunc(${snap_dim},
+        {% endif %}
+
         date({% case comp_value %}
                 {% when "trailing" or "default"  %}
                   dateadd('days', -(${size_of_range_dim}+1), ${period_2_start})
@@ -1141,7 +1252,13 @@ view: pop_block {
                   dateadd('days', -365, ${period_2_start})
                 {% when "last_week_vs_two_weeks_ago" or "last_month_vs_two_months_ago" or "last_quarter_vs_two_quarters_ago" or "last_year_vs_two_years_ago" %}
                   dateadd('days', -(datediff('days', ${period_2_start}, ${period_2_end})+1), ${period_2_start})
-              {% endcase %});;
+              {% endcase %})
+      {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          )
+          {% comment %}
+          -- close the snap to function
+          {% endcomment %}
+        {% endif %};;
       hidden: yes
 
     }
@@ -1180,6 +1297,12 @@ view: pop_block {
           {% else  %}
               {% assign comp_value = compare_to._parameter_value  %}
           {% endif %}
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          {% comment %}
+          -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
+          {% endcomment %}
+            date_trunc(${snap_dim},
+        {% endif %}
        date({% case comp_value %}
                 {% when "trailing" or "default"  %}
                   dateadd('days', -(${size_of_range_dim}+1), ${period_3_start})
@@ -1209,7 +1332,13 @@ view: pop_block {
                   dateadd('days', -365, ${period_3_start})
                 {% when "last_week_vs_two_weeks_ago" or "last_month_vs_two_months_ago" or "last_quarter_vs_two_quarters_ago" or "last_year_vs_two_years_ago" %}
                   dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_start})
-              {% endcase %});;
+              {% endcase %})
+            {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" %}
+          )
+          {% comment %}
+          -- close the snap to function
+          {% endcomment %}
+        {% endif %};;
       hidden: yes
     }
 
