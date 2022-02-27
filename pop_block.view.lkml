@@ -1012,6 +1012,7 @@ view: pop_block {
             {% assign comp_value = compare_to._parameter_value  %}
         {% endif %}
 
+        date(
         {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
         {% comment %}
         -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
@@ -1019,7 +1020,7 @@ view: pop_block {
             date_trunc(${snap_dim},
         {% endif %}
 
-        date({% case comp_value %}
+        {% case comp_value %}
               {% when "trailing" or "default"%}
                 date_add('days', -(${size_of_range_dim}), ${current_date_dim})
 
@@ -1059,7 +1060,7 @@ view: pop_block {
               {% when "last_year_vs_two_years_ago" %}
                 date_trunc('year', dateadd('year', -1, ${current_date_dim}))
 
-            {% endcase %})
+            {% endcase %}
 
         {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
           )
@@ -1067,6 +1068,7 @@ view: pop_block {
           -- close the snap to function
           {% endcomment %}
         {% endif %}
+        )
         ;;
     }
 
@@ -1111,7 +1113,7 @@ view: pop_block {
         {% else  %}
             {% assign comp_value = compare_to._parameter_value  %}
         {% endif %}
-
+        date(
         {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
           {% comment %}
           -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
@@ -1119,7 +1121,7 @@ view: pop_block {
             date_trunc(${snap_dim},
         {% endif %}
 
-        date({% case comp_value %}
+        {% case comp_value %}
 
               {% when "trailing" or "default"  %}
                 dateadd('days', -(${size_of_range_dim}+1), ${period_1_start})
@@ -1172,14 +1174,14 @@ view: pop_block {
               {% when "last_year_vs_two_years_ago" %}
                 dateadd('days', -(datediff('days', ${period_1_start}, ${period_1_end})+1), ${period_1_start})
 
-            {% endcase %})
+            {% endcase %}
         {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
           )
           {% comment %}
           -- close the snap to function
           {% endcomment %}
         {% endif %}
-
+        )
         ;;
     }
 
@@ -1217,7 +1219,7 @@ view: pop_block {
           {% else  %}
               {% assign comp_value = compare_to._parameter_value  %}
           {% endif %}
-
+        date(
         {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
           {% comment %}
           -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
@@ -1225,7 +1227,7 @@ view: pop_block {
             date_trunc(${snap_dim},
         {% endif %}
 
-        date({% case comp_value %}
+        {% case comp_value %}
                 {% when "trailing" or "default"  %}
                   dateadd('days', -(${size_of_range_dim}+1), ${period_2_start})
                 {% when "trailing_30" %}
@@ -1254,11 +1256,13 @@ view: pop_block {
                   dateadd('days', -(datediff('days', ${period_2_start}, ${period_2_end})+1), ${period_2_start})
               {% endcase %})
       {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
-          )
+
           {% comment %}
           -- close the snap to function
           {% endcomment %}
-        {% endif %};;
+        {% endif %}
+        )
+        ;;
       hidden: yes
 
     }
@@ -1297,13 +1301,14 @@ view: pop_block {
           {% else  %}
               {% assign comp_value = compare_to._parameter_value  %}
           {% endif %}
+        date(
         {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
           {% comment %}
           -- If selected, will snap the start date to the begining of value (i.e. week, quarter, month, year)
           {% endcomment %}
             date_trunc(${snap_dim},
         {% endif %}
-       date({% case comp_value %}
+       {% case comp_value %}
                 {% when "trailing" or "default"  %}
                   dateadd('days', -(${size_of_range_dim}+1), ${period_3_start})
                 {% when "trailing_30" %}
@@ -1332,13 +1337,14 @@ view: pop_block {
                   dateadd('days', -365, ${period_3_start})
                 {% when "last_week_vs_two_weeks_ago" or "last_month_vs_two_months_ago" or "last_quarter_vs_two_quarters_ago" or "last_year_vs_two_years_ago" %}
                   dateadd('days', -(datediff('days', ${period_3_start}, ${period_3_end})+1), ${period_3_start})
-              {% endcase %})
-            {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
+              {% endcase %}
+        {% if user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none" and comp_value contains "trailing" %}
           )
           {% comment %}
           -- close the snap to function
           {% endcomment %}
-        {% endif %};;
+        {% endif %}
+        );;
       hidden: yes
     }
 
