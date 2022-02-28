@@ -1214,11 +1214,11 @@ view: pop_block {
       description: "Calculates the start of 2 periods ago"
       type: date_raw
       sql:
-          {% if user_compare_to._parameter_value != "none" %}
-              {% assign comp_value = user_compare_to._parameter_value  %}
-          {% else  %}
-              {% assign comp_value = compare_to._parameter_value  %}
-          {% endif %}
+        {% if user_compare_to._parameter_value != "none" %}
+            {% assign comp_value = user_compare_to._parameter_value  %}
+        {% else  %}
+            {% assign comp_value = compare_to._parameter_value  %}
+        {% endif %}
         date(
         {% if (user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none") and comp_value contains "trailing" %}
           {% comment %}
@@ -1254,9 +1254,10 @@ view: pop_block {
                   dateadd('days', -365, ${period_2_start})
                 {% when "last_week_vs_two_weeks_ago" or "last_month_vs_two_months_ago" or "last_quarter_vs_two_quarters_ago" or "last_year_vs_two_years_ago" %}
                   dateadd('days', -(datediff('days', ${period_2_start}, ${period_2_end})+1), ${period_2_start})
-              {% endcase %})
-      {% if (user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none") and comp_value contains "trailing" %}
-            )
+              {% endcase %}
+
+        {% if (user_snap_start_date_to._parameter_value != "none" or tile_snap_start_date_to._parameter_value != "none") and comp_value contains "trailing" %}
+          )
           {% comment %}
           -- close the snap to function
           {% endcomment %}
