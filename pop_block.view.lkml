@@ -484,7 +484,7 @@ view: pop_block {
           {% case exclude_days_val %}
            {% when "999" %}
               -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
-              select max(${origin_event_date}) from ${origin_table_name}
+              (select max(${origin_event_date}) from ${origin_table_name})
            {% when "1" %}
               dateadd('days', -1, ${post_as_of_date}) -- One day exclude
            {% when "2" %}
