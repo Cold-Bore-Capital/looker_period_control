@@ -718,37 +718,38 @@ view: pop_block {
       type: string
       hidden: yes
       sql:
-      {% assign comp_to = user_compare_to._parameter_value | slice: 0, 8 %}
-      {% if comp_to == "trailing" %}
-        'Trailing'
-      {% else %}
-        {% case user_compare_to._parameter_value %}
-          {% when "wtd_vs_prior_week" %}
-            'WTD vs Prior Week'
-          {% when "mtd_vs_prior_month" %}
-            'MTD vs Prior Month'
-          {% when "mtd_vs_prior_quarter" %}
-            'MTD vs Prior Quarter'
-          {% when "mtd_vs_prior_year" %}
-            'MTD vs Prior Year'
-          {% when "qtd_vs_prior_quarter" %}
-            'QTD vs Prior Quarter'
-          {% when "qtd_vs_prior_year" %}
-            'QTD Vs Prior Year'
-          {% when "ytd_vs_prior_year" %}
-            'YTD vs Prior Year'
-          {% when "last_week_vs_two_weeks_ago" %}
-            'Last Week vs Two Weeks Ago'
-          {% when "last_month_vs_two_months_ago" %}
-            'Last Month vs Two Months Ago'
-          {% when "last_quarter_vs_two_quarters_ago" %}
-            'Last Quarter vs Two Quarters Ago'
-          {% when "last_year_vs_two_years_ago" %}
-            'Last Year vs Two Years Ago'
-          {% else %}
-            'No Period Selected'
-        {% endcase %}
-      {% endif %};;
+      {% assign comp_to = user_compare_to._parameter_value %}
+
+      {% case user_compare_to._parameter_value %}
+        {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
+          or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
+          or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
+          'Trailing'
+        {% when "wtd_vs_prior_week" %}
+          'WTD vs Prior Week'
+        {% when "mtd_vs_prior_month" %}
+          'MTD vs Prior Month'
+        {% when "mtd_vs_prior_quarter" %}
+          'MTD vs Prior Quarter'
+        {% when "mtd_vs_prior_year" %}
+          'MTD vs Prior Year'
+        {% when "qtd_vs_prior_quarter" %}
+          'QTD vs Prior Quarter'
+        {% when "qtd_vs_prior_year" %}
+          'QTD Vs Prior Year'
+        {% when "ytd_vs_prior_year" %}
+          'YTD vs Prior Year'
+        {% when "last_week_vs_two_weeks_ago" %}
+          'Last Week vs Two Weeks Ago'
+        {% when "last_month_vs_two_months_ago" %}
+          'Last Month vs Two Months Ago'
+        {% when "last_quarter_vs_two_quarters_ago" %}
+          'Last Quarter vs Two Quarters Ago'
+        {% when "last_year_vs_two_years_ago" %}
+          'Last Year vs Two Years Ago'
+        {% else %}
+          'No Period Selected'
+      {% endcase %};;
     }
 
     dimension: period_explanation_display {
@@ -759,8 +760,10 @@ view: pop_block {
       sql: ${period_1_start_display} ;;
       html:
           <div style='text-align: center; width:100%;'>
-            {% case user_compare_to._parameter_value | slice: 0, 8 %}
-              {% when "trailing" %}
+            {% case user_compare_to._parameter_value %}
+              {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
+                or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
+                or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 <div style='float: left; padding-right:2%; border-right:2px solid gray; font-size: 0.75em;'>{{ selected_pop_type }} {{ period_1_len }} days</div>
               {% else %}
                 <div style='float: left; padding-right:2%; border-right:2px solid gray; font-size: 0.75em;'>{{ selected_pop_type }}</div>
@@ -815,15 +818,10 @@ view: pop_block {
               {% else  %}
                 {% assign comp_value = compare_to._parameter_value  %}
               {% endif %}
-              -- This exists to reduce the number of "or" statments in the case. Simplifies to just "trailing"
-              -- String Trunc: {{ comp_value | slice: 0, 8 }} Len: {{ comp_value | slice: 0, 8 | size}}
-              {% if comp_value | slice: 0, 8 == "trailing" or comp_value == "trailing" %}
-                {% assign comp_value = "trailing" %}
-                 -- {{ comp_value }}
-              {% endif %}
-
             {% case comp_value %}
-              {% when "trailing" %}
+              {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
+                or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
+                or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
                 'This Period'
               {% when 'wtd_vs_prior_week' %}
                 'This Week'
@@ -842,13 +840,10 @@ view: pop_block {
               {% when "last_year_vs_two_years_ago" %}
                 'Last Year'
             {% endcase %}
-
             {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
               || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
             {% endif %}
              -- Debug: comp_value - {{ comp_value }}
-
-
            when ${event_date} between ${period_2_start} and ${period_2_end} then
             {% if user_compare_to._parameter_value != "none" %}
                 {% assign comp_value = user_compare_to._parameter_value  %}
@@ -1146,12 +1141,12 @@ view: pop_block {
             {% assign comp_value = compare_to._parameter_value  %}
         {% endif %}
 
-        {% if comp_value | slice: 0, 8 == "trailing" %}
-          {% assign comp_value = "trailing" %}
-        {% endif %}
-
         date({% case comp_value %}
-              {% when "trailing" or "mtd_vs_prior_month" or "wtd_vs_prior_week" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year"  or "ytd_vs_prior_year"  %}
+              {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180"
+                or "trailing_365" or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq"
+                or "trailing_180_lq" or "trailing_365_lq" or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly"
+                or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" or "mtd_vs_prior_month" or "wtd_vs_prior_week" or "mtd_vs_prior_quarter"
+                or "mtd_vs_prior_year" or "qtd_vs_prior_quarter" or "qtd_vs_prior_year"  or "ytd_vs_prior_year" %}
                 ${current_date_dim}
 
               {% when "last_week_vs_two_weeks_ago" %}
