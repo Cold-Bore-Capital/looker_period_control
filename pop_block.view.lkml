@@ -768,6 +768,26 @@ view: pop_block {
       {% endcase %};;
     }
 
+  dimension: period_1_start_formatted {
+    type: string
+    sql: to_char(${period_1_start_display}, 'MM/DD/YY') ;;
+}
+
+  dimension: period_1_end_formatted {
+    type: string
+    sql: to_char(${period_1_end_display}, 'MM/DD/YY') ;;
+  }
+
+  dimension: period_2_start_formatted {
+    type: string
+    sql: to_char(${period_2_start_display}, 'MM/DD/YY') ;;
+  }
+
+  dimension: period_2_end_formatted {
+    type: string
+    sql: to_char(${period_2_end_display}, 'MM/DD/YY') ;;
+  }
+
   dimension: period_date_display {
     view_label: "@{block_field_name}"
     description: "Use this with a single value type tile to display the current period block settings to the user."
@@ -777,8 +797,8 @@ view: pop_block {
     html:
           <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
             <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
-               <tr><td style='text-align: right; color: gray;'>CUR: </td><td><strong>{{ period_1_start | date: "%m/%d/%y"  }}</strong></td><td> to </td><td><strong>{{ period_1_end | date: "%m/%d/%y" }}</strong></td></tr>
-               <tr><td style='text-align: right; color: gray;'>PRI:</td><td><strong>{{ period_2_start | date: "%m/%d/%y" }}</strong></td><td> to </td><td><strong>{{ period_2_end | date: "%m/%d/%y" }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Current: </td><td><strong>{{ period_1_start_formatted}}</strong></td><td>  to  </td><td><strong>{{ period_1_end_formatted  }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Prior: </td><td><strong>{{ period_2_start_formatted }}</strong></td><td>  to  </td><td><strong>{{ period_2_end_formatted }}</strong></td></tr>
             </table>
           </div>
             ;;
