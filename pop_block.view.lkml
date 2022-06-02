@@ -768,6 +768,22 @@ view: pop_block {
       {% endcase %};;
     }
 
+  dimension: period_date_display {
+    view_label: "@{block_field_name}"
+    description: "Use this with a single value type tile to display the current period block settings to the user."
+    group_label: "Period Display"
+    type: string
+    sql: ${period_1_start_display} ;;
+    html:
+          <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
+            <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
+               <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
+            </table>
+          </div>
+            ;;
+  }
+
     dimension: period_explanation_display {
       view_label: "@{block_field_name}"
       description: "Use this with a single value type tile to display the current period block settings to the user."
@@ -786,8 +802,8 @@ view: pop_block {
            {% endcase %}
             <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
               <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
-                 <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_end }}</strong> to <strong>{{ period_1_start }}</strong></td></tr>
-                 <tr><td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_end }}</strong> to <strong>{{ period_2_start }}</strong></td></tr>
+                 <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
               </table>
             </div>
             <div style='float: left; padding-left:2%; border-left:2px solid gray; font-size: 0.75em; '><strong>{{ period_1_len }}</strong> days in period</div>
