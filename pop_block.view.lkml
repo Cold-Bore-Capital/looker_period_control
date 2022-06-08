@@ -775,10 +775,26 @@ view: pop_block {
     type: string
     sql: ${period_1_start_display} ;;
     html:
-          <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
+          <div style='float: left; padding:0 2% 0 2%; text-align:center;'>
             <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
                <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td></tr>
                <tr><td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
+            </table>
+          </div>
+            ;;
+  }
+
+  dimension: period_date_display_horizontal {
+    view_label: "@{block_field_name}"
+    description: "Use this with a single value type tile to display the current period block settings to the user."
+    group_label: "Period Display"
+    type: string
+    sql: ${period_1_start_display} ;;
+    html:
+          <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
+            <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
+               <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td>
+               <td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
             </table>
           </div>
             ;;
