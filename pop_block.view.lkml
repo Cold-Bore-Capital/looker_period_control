@@ -813,7 +813,7 @@ view: pop_block {
     html:
           <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
             <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
-               <tr><td style='text-align: right; color: gray;'>Current Period: </td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td>
+               <tr><td style='text-align: right; color: gray;'>Current Period: </td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td><td>&nbsp;|&nbsp;</td>
                <td style='text-align: right; color: gray;'>Prior Period: </td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
             </table>
           </div>
