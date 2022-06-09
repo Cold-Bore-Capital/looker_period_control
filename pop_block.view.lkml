@@ -508,7 +508,7 @@ view: pop_block {
     type: number
     allowed_value: {
       label: "Select"
-      value: "none"
+      value: "1"
     }
     allowed_value: {
       label: "2"
@@ -522,7 +522,7 @@ view: pop_block {
       label: "4"
       value: "4"
     }
-    default_value: "none"
+    default_value: "1"
   }
 
   parameter: display_dates_in_trailing_periods {
@@ -1578,7 +1578,7 @@ view: pop_block {
           {% assign exclude_days_val = exclude_days._parameter_value %}
               {% if comp_val_set != "none" or user_comp_val_set != "none" %}
                 {% case period_count %}
-                  {% when 'none' %}
+                  {% when '1' %}
                     (${event_date} between ${period_1_start} and ${period_1_end})
                   {% when '2' %}
                     ((${event_date} between ${period_1_start} and ${period_1_end})
