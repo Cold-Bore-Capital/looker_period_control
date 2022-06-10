@@ -1574,19 +1574,20 @@ view: pop_block {
       sql:
           {% assign comp_val_set = compare_to._parameter_value %}
           {% assign user_comp_val_set = user_compare_to._parameter_value %}
+          {% assign comp_periods = comparison_periods._parameter_value %}
           {% assign exclude_days_val = exclude_days._parameter_value %}
               {% if comp_val_set != "none" or user_comp_val_set != "none" %}
                 {% case comparison_periods._parameter_value %}
-                  {% when '1' %}
+                  {% when 1 %}
                     (${event_date} between ${period_1_start} and ${period_1_end})
-                  {% when '2' %}
+                  {% when 2 %}
                     ((${event_date} between ${period_1_start} and ${period_1_end})
                     or (${event_date} between ${period_2_start} and ${period_2_end}))
-                  {% when '3' %}
+                  {% when 3 %}
                     ((${event_date} between ${period_1_start} and ${period_1_end})
                     or (${event_date} between ${period_2_start} and ${period_2_end})
                     or (${event_date} between ${period_3_start} and ${period_3_end}))
-                  {% when '4' %}
+                  {% when 4 %}
                     ((${event_date} between ${period_1_start} and ${period_1_end})
                     or (${event_date} between ${period_2_start} and ${period_2_end})
                     or (${event_date} between ${period_3_start} and ${period_3_end})
