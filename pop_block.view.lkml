@@ -962,7 +962,7 @@ view: pop_block {
               || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
             {% endif %}
 
-        {% if comparison_periods._parameter_value == "4" or comparison_periods._parameter_value == "3"%}
+        {% if comparison_periods._parameter_value == 4 or comparison_periods._parameter_value == 3 %}
           when ${event_date} between ${period_3_start} and ${period_3_end} then
             {% if user_compare_to._parameter_value != "none" %}
                 {% assign comp_value = user_compare_to._parameter_value  %}
@@ -1011,7 +1011,7 @@ view: pop_block {
             {% endif %}
 
         {% endif %}
-        {% if comparison_periods._parameter_value == "4" %}
+        {% if comparison_periods._parameter_value == 4 %}
           when ${event_date} between ${period_4_start} and ${period_4_end} then
             {% if user_compare_to._parameter_value != "none" %}
               {% assign comp_value = user_compare_to._parameter_value == 'true' %}
@@ -1077,10 +1077,10 @@ view: pop_block {
       sql:   case
              when ${event_date} between ${period_1_start} and ${period_1_end} then 1
              when ${event_date} between ${period_2_start} and ${period_2_end} then 2
-             {% if comparison_periods._parameter_value == "3" or comparison_periods._parameter_value == "4" %}
+             {% if comparison_periods._parameter_value == 3 or comparison_periods._parameter_value == 4 %}
                 when ${event_date} between ${period_3_start} and ${period_3_end} then 3
              {% endif %}
-             {% if comparison_periods._parameter_value == "4" %}
+             {% if comparison_periods._parameter_value == 4 %}
                 when ${event_date} between ${period_4_start} and ${period_4_end} then 4
              {% endif %}
          end ;;
@@ -1115,11 +1115,11 @@ view: pop_block {
             then datediff('day', ${period_1_start}, ${event_date})
             when ${event_date} between ${period_2_start} and ${period_2_end}
             then datediff('day', ${period_2_start}, ${event_date})
-            {% if comparison_periods._parameter_value == "3" or comparison_periods._parameter_value == "4" %}
+            {% if comparison_periods._parameter_value == 3 or comparison_periods._parameter_value == 4 %}
             when ${event_date} between ${period_3_start} and ${period_3_end}
             then datediff('day', ${period_3_start}, ${event_date})
             {% endif %}
-            {% if comparison_periods._parameter_value == "4" %}
+            {% if comparison_periods._parameter_value == 4 %}
             when ${event_date} between ${period_4_start} and ${period_4_end}
             then datediff('day', ${period_4_start}, ${event_date})
             {% endif %}
