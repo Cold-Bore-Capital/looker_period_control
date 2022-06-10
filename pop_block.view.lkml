@@ -1574,7 +1574,6 @@ view: pop_block {
       sql:
           {% assign comp_val_set = compare_to._parameter_value %}
           {% assign user_comp_val_set = user_compare_to._parameter_value %}
-          {% assign comp_periods = comparison_periods._parameter_value %}
           {% assign exclude_days_val = exclude_days._parameter_value %}
               {% if comp_val_set != "none" or user_comp_val_set != "none" %}
                 {% case comparison_periods._parameter_value %}
