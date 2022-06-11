@@ -533,6 +533,14 @@ view: pop_block {
     default_value: "No"
   }
 
+  parameter: debug_mode {
+    group_label: "debug"
+    view_label: "@{block_field_name}"
+    description: "Prints debug output to rendered SQL as comments"
+    type: yesno
+    default_value: "no"
+  }
+
 # *************************
 # Related to "current date"
 # *************************
@@ -584,24 +592,18 @@ view: pop_block {
            {% when "last_full_week" %}
               dateadd('days', -1, date_trunc('week', ${post_as_of_date})) -- Last full week
            {% when "last_full_month" %}
-              dateadd('days', -1, date_trunc('month', ${post_as_of_date}))
+              dateadd('days', -1, date_trunc('month', ${post_as_of_date})) -- Last full month
            {% when "last_full_quarter" %}
               dateadd('days', -1, date_trunc('quarter', ${post_as_of_date}))
            {% when "last_full_year" %}
               dateadd('days', -1, date_trunc('year', ${post_as_of_date}))
                {% else %}
               ${post_as_of_date} -- No cases matched
-
           {% endcase %}
-
         {% else %}
             -- If as_of_date, exclude_days, and user_exclude_days are null
-            -- User Exclude: {% parameter user_exclude_days %}|
-            -- Regular exclude: {% parameter exclude_days %}|
-            -- As of Date: {% parameter as_of_date %}
             ${post_as_of_date}
-        {% endif %}
-        )
+        {% endif %}  )
         ;;
   }
 
@@ -731,7 +733,6 @@ view: pop_block {
       hidden: yes
       sql:
       {% assign comp_to = user_compare_to._parameter_value %}
-
       {% case user_compare_to._parameter_value %}
         {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
           or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
@@ -879,6 +880,13 @@ view: pop_block {
       # || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
       # || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
       sql:
+      {% if debug_mode._parameter_value == "true" %}
+          -- user_compare_to: {% parameter user_compare_to %}
+          -- comparison_periods: {% parameter comparison_periods %}
+          -- user_exclude_days: {% parameter user_exclude_days %}
+          -- exclude_days: {% parameter exclude_days %}
+          -- as_of_date: {% parameter as_of_date %}
+      {% endif %}
       case
            when ${event_date} between ${period_1_start} and ${period_1_end} then
               {% if user_compare_to._parameter_value != "none" %}
@@ -886,45 +894,42 @@ view: pop_block {
               {% else  %}
                 {% assign comp_value = compare_to._parameter_value  %}
               {% endif %}
-            {% case comp_value %}
-              {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
-                or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
-                or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
-                'This Period'
-              {% when "today_vs_yesterday" %}
-                'Today'
-              {% when "yesterday_vs_prior" %}
-                'Yesterday'
-              {% when "wtd_vs_prior_week" %}
-                'This Week'
-              {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year"  %}
-                'MTD - This Month'
-              {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" %}
-                'QTD - This Quarter'
-              {% when "ytd_vs_prior_year" %}
-                'YTD - This Year'
-              {% when 'last_week_vs_two_weeks_ago' %}
-                'Last Week'
-              {% when "last_month_vs_two_months_ago" %}
-                'Last Month'
-              {% when "last_quarter_vs_two_quarters_ago" %}
-                'Last Quarter'
-              {% when "last_year_vs_two_years_ago" %}
-                'Last Year'
-            {% endcase %}
+              {% case comp_value %}
+                {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
+                  or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
+                  or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" %}
+                  'This Period'
+                {% when "today_vs_yesterday" %}
+                  'Today'
+                {% when "yesterday_vs_prior" %}
+                  'Yesterday'
+                {% when "wtd_vs_prior_week" %}
+                  'This Week'
+                {% when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year"  %}
+                  'MTD - This Month'
+                {% when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" %}
+                  'QTD - This Quarter'
+                {% when "ytd_vs_prior_year" %}
+                  'YTD - This Year'
+                {% when 'last_week_vs_two_weeks_ago' %}
+                  'Last Week'
+                {% when "last_month_vs_two_months_ago" %}
+                  'Last Month'
+                {% when "last_quarter_vs_two_quarters_ago" %}
+                  'Last Quarter'
+                {% when "last_year_vs_two_years_ago" %}
+                  'Last Year'
+              {% endcase %}
             {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
               || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
             {% endif %}
-             -- Debug: comp_value - {{ comp_value }}
            when ${event_date} between ${period_2_start} and ${period_2_end} then
             {% if user_compare_to._parameter_value != "none" %}
                 {% assign comp_value = user_compare_to._parameter_value  %}
             {% else  %}
                 {% assign comp_value = compare_to._parameter_value  %}
             {% endif %}
-
             {% case comp_value %}
-
               {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" %}
                 'Prior Period'
               {% when "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq" %}
@@ -961,7 +966,7 @@ view: pop_block {
             {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
               || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
             {% endif %}
-
+            -- dimension period: period selection 2 or less
         {% if comparison_periods._parameter_value == 4 or comparison_periods._parameter_value == 3 %}
           when ${event_date} between ${period_3_start} and ${period_3_end} then
             {% if user_compare_to._parameter_value != "none" %}
@@ -970,7 +975,6 @@ view: pop_block {
                 {% assign comp_value = compare_to._parameter_value  %}
             {% endif %}
             {% case comp_value %}
-
               {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" %}
                 'Two Periods Ago'
               {% when "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq" %}
@@ -1009,7 +1013,7 @@ view: pop_block {
             {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
               || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
             {% endif %}
-
+            -- dimension period: period selection 3 or greater
         {% endif %}
         {% if comparison_periods._parameter_value == 4 %}
           when ${event_date} between ${period_4_start} and ${period_4_end} then
@@ -1018,9 +1022,7 @@ view: pop_block {
             {% else  %}
                 {% assign comp_value = compare_to._parameter_value  %}
             {% endif %}
-
             {% case comp_value %}
-
               {% when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" %}
                 'Three Periods Ago'
               {% when "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq" %}
@@ -1057,7 +1059,7 @@ view: pop_block {
             {% if display_dates_in_trailing_periods._parameter_value == 'true' %}
               || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
             {% endif %}
-
+            -- dimension period: period selection 4
           {% endif %}
          end ;;
     }
