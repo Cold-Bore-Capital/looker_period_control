@@ -769,24 +769,9 @@ view: pop_block {
       {% endcase %};;
     }
 
-  dimension: period_1_start_formatted {
-    type: string
-    sql: to_char(${period_1_start_display}, 'MM/DD/YY') ;;
-}
-
-  dimension: period_1_end_formatted {
-    type: string
-    sql: to_char(${period_1_end_display}, 'MM/DD/YY') ;;
-  }
-
-  dimension: period_2_start_formatted {
-    type: string
-    sql: to_char(${period_2_start_display}, 'MM/DD/YY') ;;
-  }
-
-  dimension: period_2_end_formatted {
-    type: string
-    sql: to_char(${period_2_end_display}, 'MM/DD/YY') ;;
+  dimension_group: period_1_start_dim_group {
+    type: time
+    sql: ${period_1_start} ;;
   }
 
   dimension: period_date_display {
@@ -798,8 +783,8 @@ view: pop_block {
     html:
           <div style='float: left; padding:0 2% 0 2%; text-align:center;'>
             <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
-               <tr><td style='text-align: right; color: gray;'>Current: </td><td><strong>{{ period_1_start_formatted}}</strong></td><td>&nbsp;to&nbsp;</td><td><strong>{{ period_1_end_formatted  }}</strong></td></tr>
-               <tr><td style='text-align: right; color: gray;'>Prior: </td><td><strong>{{ period_2_start_formatted }}</strong></td><td>&nbsp;to&nbsp;</td><td><strong>{{ period_2_end_formatted }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Current: </td><td><strong>{{ period_1_start._rendered_value | date: "%m/%d/%y"  }}</strong></td><td>&nbsp;to&nbsp;</td><td><strong>{{ period_1_end._rendered_value | date: "%m/%d/%y" }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Prior: </td><td><strong>{{ period_2_start._rendered_value | date: "%m/%d/%y"  }}</strong></td><td>&nbsp;to&nbsp;</td><td><strong>{{ period_2_end._rendered_value | date: "%m/%d/%y"  }}</strong></td></tr>
             </table>
           </div>
             ;;
@@ -814,8 +799,8 @@ view: pop_block {
     html:
           <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
             <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
-               <tr><td style='text-align: right; color: gray;'>Current Period: </td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td><td>&nbsp;|&nbsp;</td>
-               <td style='text-align: right; color: gray;'>Prior Period: </td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Current Period: </td><td><strong>{{ period_1_start._rendered_value | date: "%m/%d/%y"  }}</strong> to <strong>{{ period_1_end }}</strong></td><td>&nbsp;|&nbsp;</td>
+               <td style='text-align: right; color: gray;'>Prior Period: </td><td><strong>{{ period_2_start._rendered_value | date: "%m/%d/%y"  }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
             </table>
           </div>
             ;;
@@ -839,8 +824,8 @@ view: pop_block {
            {% endcase %}
             <div style='float: left; padding:0 2% 0 2%; text-align:left;'>
               <table style='font-size:0.5em; line-height:1.2em; border-spacing: 10px;'>
-                 <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_start }}</strong> to <strong>{{ period_1_end }}</strong></td></tr>
-               <tr><td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_start }}</strong> to <strong>{{ period_2_end }}</strong></td></tr>
+                 <tr><td style='text-align: right; color: gray;'>Current Period:</td><td><strong>{{ period_1_start._rendered_value | date: "%m/%d/%y"  }}</strong> to <strong>{{ period_1_end._rendered_value | date: "%m/%d/%y"  }}</strong></td></tr>
+               <tr><td style='text-align: right; color: gray;'>Prior Period:</td><td><strong>{{ period_2_start._rendered_value | date: "%m/%d/%y"  }}</strong> to <strong>{{ period_2_end._rendered_value | date: "%m/%d/%y"  }}</strong></td></tr>
               </table>
             </div>
             <div style='float: left; padding-left:2%; border-left:2px solid gray; font-size: 0.75em; '><strong>{{ period_1_len }}</strong> days in period</div>
