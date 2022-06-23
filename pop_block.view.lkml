@@ -772,6 +772,7 @@ view: pop_block {
   dimension_group: period_1_start_dim_group {
     type: time
     sql: ${period_1_start} ;;
+    view_label: "@{block_field_name}"
   }
 
   dimension: period_date_display {
