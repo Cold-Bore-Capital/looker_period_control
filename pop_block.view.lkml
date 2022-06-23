@@ -1003,7 +1003,7 @@ view: pop_block {
         {% if comparison_periods._parameter_value == 4 %}
           when ${event_date} between ${period_4_start} and ${period_4_end} then
             {% if user_compare_to._parameter_value != "none" %}
-              {% assign comp_value = user_compare_to._parameter_value == 'true' %}
+              {% assign comp_value = user_compare_to._parameter_value %}
             {% else  %}
                 {% assign comp_value = compare_to._parameter_value  %}
             {% endif %}
