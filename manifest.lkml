@@ -1,6 +1,6 @@
-project_name: "pop_block"
+project_name: "looker_period_control"
 
 constant: block_field_name {
-  value: "Z - PoP Block"
+  value: "Z - Period Control"
   export: override_optional
 }
