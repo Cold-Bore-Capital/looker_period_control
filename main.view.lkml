@@ -14,6 +14,14 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+###
+# TODO List
+#  - Set the default number of days for a normalized month or quarter to the most recent month or quarter.
+#  - You can make a date display block using your date between function. You can simply tie the date display block to
+#    your dates table, then run a min and a max function on the resulting values. This will display the min and max values
+#    in the range super easy.
+
+
 
 view: main {
 
@@ -428,10 +436,12 @@ view: main {
     ;;
   }
 
-
   dimension: start_date_dim {
     ##
     # This dimension handles any date truncation needed for WTD, MTD, YTD type operations.
+    #
+    # The start_date_dim will be used as the starting date for start period date calcs. When a {x}td type seletion is made, the period size will
+    # be set to zero, relying on the date trunc operation to set the start date of the period.
     #
     # Notes:
     #   1. The else case handles all trailing, today, and yesterday selections.
@@ -450,46 +460,7 @@ view: main {
          {%- endcase -%};;
   }
 
-    # dimension: selected_pop_type {
-    #   type: string
-    #   hidden: yes
-    #   sql:
-    #   {%- assign comp_to = user_period_selection._parameter_value -%}
-    #   {%- case user_period_selection._parameter_value -%}
-    #     {%- when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
-    #       or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
-    #       or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" -%}
-    #       'Trailing'
-    #     {%- when "today_vs_yesterday" -%}
-    #       'Today vs Yesterday'
-    #     {%- when "yesterday_vs_prior" -%}
-    #       'Yesterday vs Day Prior'
-    #     {%- when "wtd_vs_prior_week" -%}
-    #       'WTD vs Prior Week'
-    #     {%- when "mtd_vs_prior_month" -%}
-    #       'MTD vs Prior Month'
-    #     {%- when "mtd_vs_prior_quarter" -%}
-    #       'MTD vs Prior Quarter'
-    #     {%- when "mtd_vs_prior_year" -%}
-    #       'MTD vs Prior Year'
-    #     {%- when "qtd_vs_prior_quarter" -%}
-    #       'QTD vs Prior Quarter'
-    #     {%- when "qtd_vs_prior_year" -%}
-    #       'QTD Vs Prior Year'
-    #     {%- when "ytd_vs_prior_year" -%}
-    #       'YTD vs Prior Year'
-    #     {%- when "last_week_vs_two_weeks_ago" -%}
-    #       'Last Week vs Two Weeks Ago'
-    #     {%- when "last_month_vs_two_months_ago" -%}
-    #       'Last Month vs Two Months Ago'
-    #     {%- when "last_quarter_vs_two_quarters_ago" -%}
-    #       'Last Quarter vs Two Quarters Ago'
-    #     {%- when "last_year_vs_two_years_ago" -%}
-    #       'Last Year vs Two Years Ago'
-    #     {%- else -%}
-    #       'No Period Selected'
-    #   {%- endcase -%};;
-    # }
+
 
 
     # *************************
@@ -527,7 +498,7 @@ view: main {
     label: "Period Pivot Dev"
     group_label: "Pivot Dimensions"
     type: string
-    # order_by_field: order_for_period
+    order_by_field: order_for_period
     #
     # Note on Invalid Date and Duration Combinations. The first portion of this script checks to make sure the user hasn't selected a combo of
     # trailing or other durations that would cause overlap. If comparing week over week, the max trailing is 7. For month 28, quarter 90,
@@ -547,10 +518,6 @@ view: main {
         {%- assign _period_selection = period_selection._parameter_value -%}
         {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
         {%- comment -%}Check for invalid states{%- endcomment -%}
-        -- _compare_to_period: {{_compare_to_period}}
-        -- _range_size: {{_range_size}}
-        -- _range_start: {{_range_start}}
-        -- _period_selection: {{_period_selection}}
         {%- if (_compare_to_period == 'prior_week' and _range_size > 7 and _period_selection == 'trailing') %}
             'WARNING: Cannot compare prior week over 7 days. {{_range_size}} days selected.'
         {%- elsif (_compare_to_period == 'prior_month' and _range_size > 28 and _period_selection == 'trailing') %}
@@ -636,8 +603,6 @@ view: main {
       ;;
   }
 
-  # NOTE FOR THE AM: You can make a date display block using your date between function. You can simply tie the date display block to
-  # your dates table, then run a min and a max function on the resulting values. This will display the min and max values in the range super easy.
 
   # dimension: period_dev {
   #   view_label: "@{block_field_name}"
@@ -770,218 +735,6 @@ view: main {
   # }
 
 
-
-
-        # {%- assign _period_count_values = "Current,2nd,3rd,4th,5th,6th,7th,8th,9th,10th,11th,12th,13th,14th,15th,16th,17th,18th,19th,20th,21st,22nd,23rd,24th,25th,26th,27th,28th,29th,30th,31st,32nd,33rd,34th,35th,36th,37th,38th,39th,40th,41st,42nd,43rd,44th,45th,46th,47th,48th,49th,50th,51st,52nd,53rd" | split: ',' -%}
-        # case
-        # {%- for i in (1.._period_count) -%}
-        #     {%- assign _period_prefix = _period_count_values[i] -%}
-        #     when ${event_date} between date_add('days', -{{_start_period_value -}}, ${start_date_dim}) and date_add('days', -{{_end_period_value -}}, ${start_date_dim}) then '{{ _period_prefix -}} ' || ${period_name_selection}
-        #     {%- assign _start_period_value = _start_period_value * i -%}
-        #     {%- assign _end_period_value = _start_period_value + 1 -%}
-        # {%- endfor -%}
-        # end
-
-
-
-    # dimension: period_backup {
-    #   view_label: "@{block_field_name}"
-    #   label: "Period Pivot"
-    #   group_label: "Pivot Dimensions"
-    #   description: "Pivot me! Returns the period the metric covers, i.e. either the 'This Period', 'Previous Period' or 'Last Year', '2 Years Ago'"
-    #   type: string
-    #   order_by_field: order_for_period
-    #   # These were added to the end of each period, but this caused a bug in Looker. Because the series name changed each night the system ended up
-    #   # falling back to the default colors. Now that the
-    #   # || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
-    #   # || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
-    #   # || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
-    #   # || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
-    #   sql:
-    #   {%- if debug_mode._parameter_value == "true" -%}
-    #       -- user_period_selection: {%- parameter user_period_selection -%}
-    #       -- period_count: {%- parameter period_count -%}
-    #       -- user_exclude_days: {%- parameter user_exclude_days -%}
-    #       -- exclude_days: {%- parameter exclude_days -%}
-    #       -- as_of_date: {%- parameter as_of_date -%}
-    #   {%- endif -%}
-    #   case
-    #       when ${event_date} between ${period_1_start} and ${period_1_end} then
-    #           {%- if user_period_selection._parameter_value != "none" -%}
-    #             {%- assign comp_value = user_period_selection._parameter_value  -%}
-    #           {%- else  -%}
-    #             {%- assign comp_value = period_selection._parameter_value  -%}
-    #           {%- endif -%}
-    #           {%- case comp_value -%}
-    #             {%- when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365"
-    #               or "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq"
-    #               or "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" -%}
-    #               'This Period'
-    #             {%- when "today_vs_yesterday" -%}
-    #               'Today'
-    #             {%- when "yesterday_vs_prior" -%}
-    #               'Yesterday'
-    #             {%- when "wtd_vs_prior_week" -%}
-    #               'This Week'
-    #             {%- when "mtd_vs_prior_month" or "mtd_vs_prior_quarter" or "mtd_vs_prior_year"  -%}
-    #               'MTD - This Month'
-    #             {%- when "qtd_vs_prior_quarter" or "qtd_vs_prior_year" -%}
-    #               'QTD - This Quarter'
-    #             {%- when "ytd_vs_prior_year" -%}
-    #               'YTD - This Year'
-    #             {%- when 'last_week_vs_two_weeks_ago' -%}
-    #               'Last Week'
-    #             {%- when "last_month_vs_two_months_ago" -%}
-    #               'Last Month'
-    #             {%- when "last_quarter_vs_two_quarters_ago" -%}
-    #               'Last Quarter'
-    #             {%- when "last_year_vs_two_years_ago" -%}
-    #               'Last Year'
-    #           {%- endcase -%}
-    #         {%- if display_dates_in_trailing_periods._parameter_value == 'true' -%}
-    #           || ' (' || ${period_1_start} || ' to ' ||  ${period_1_end} || ')'
-    #         {%- endif -%}
-    #       when ${event_date} between ${period_2_start} and ${period_2_end} then
-    #         {%- if user_period_selection._parameter_value != "none" -%}
-    #             {%- assign comp_value = user_period_selection._parameter_value  -%}
-    #         {%- else  -%}
-    #             {%- assign comp_value = period_selection._parameter_value  -%}
-    #         {%- endif -%}
-    #         {%- case comp_value -%}
-    #           {%- when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" -%}
-    #             'Prior Period'
-    #           {%- when "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq" -%}
-    #             'Prior Quarter'
-    #           {%- when "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" -%}
-    #             'Prior Year'
-    #           {%- when "today_vs_yesterday" -%}
-    #             'Yesterday'
-    #           {%- when "yesterday_vs_prior" -%}
-    #             'Two Days Ago'
-    #           {%- when 'wtd_vs_prior_week' -%}
-    #             'Prior Week'
-    #           {%- when "mtd_vs_prior_month"%}
-    #             'MTD - Prior Month'
-    #           {%- when "mtd_vs_prior_quarter"  -%}
-    #               'MTD - Last Quarter'
-    #           {%- when "mtd_vs_prior_year"  -%}
-    #               'MTD - Last Year'
-    #           {%- when "qtd_vs_prior_quarter" -%}
-    #             'QTD - Prior Quarter'
-    #           {%- when "qtd_vs_prior_year" -%}
-    #             'QTD - Same Quarter Last Year'
-    #           {%- when "ytd_vs_prior_year" -%}
-    #             'YTD - Prior Year'
-    #           {%- when 'last_week_vs_two_weeks_ago' -%}
-    #             'Two Weeks Ago'
-    #           {%- when "last_month_vs_two_months_ago" -%}
-    #             'Two Months Ago'
-    #           {%- when "last_quarter_vs_two_quarters_ago" -%}
-    #             'Two Quarters Ago'
-    #           {%- when "last_year_vs_two_years_ago" -%}
-    #             'Two Years Ago'
-    #         {%- endcase -%}
-    #         {%- if display_dates_in_trailing_periods._parameter_value == 'true' -%}
-    #           || ' (' || ${period_2_start} || ' to ' ||  ${period_2_end} || ')'
-    #         {%- endif -%}
-    #         -- dimension period: period selection 2 or less
-    #     {%- if period_count._parameter_value == 4 or period_count._parameter_value == 3 -%}
-    #       when ${event_date} between ${period_3_start} and ${period_3_end} then
-    #         {%- if user_period_selection._parameter_value != "none" -%}
-    #             {%- assign comp_value = user_period_selection._parameter_value  -%}
-    #         {%- else  -%}
-    #             {%- assign comp_value = period_selection._parameter_value  -%}
-    #         {%- endif -%}
-    #         {%- case comp_value -%}
-    #           {%- when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" -%}
-    #             'Two Periods Ago'
-    #           {%- when "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq" -%}
-    #             'Two Quarters Ago'
-    #           {%- when "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" -%}
-    #           'Two Years Ago'
-    #           {%- when "trailing" -%}
-    #             'Two Periods Ago'
-    #           {%- when "today_vs_yesterday" -%}
-    #             'Two Days Ago'
-    #           {%- when "yesterday_vs_prior" -%}
-    #             'Three Days Ago'
-    #           {%- when 'wtd_vs_prior_week' -%}
-    #             'Two Weeks Ago'
-    #           {%- when "mtd_vs_prior_month"%}
-    #             'MTD - Two Months Ago'
-    #           {%- when "mtd_vs_prior_quarter"  -%}
-    #             'MTD - Two Quarters Ago'
-    #           {%- when "mtd_vs_prior_year"  -%}
-    #             'MTD - Two Years Ago'
-    #           {%- when "qtd_vs_prior_quarter" -%}
-    #             'QTD - Two Quarters Ago'
-    #           {%- when "qtd_vs_prior_year" -%}
-    #             'QTD - Same Quarter Two Years Ago'
-    #           {%- when "ytd_vs_prior_year" -%}
-    #             'Two Years Ago'
-    #           {%- when 'last_week_vs_two_weeks_ago' -%}
-    #             'Three Weeks Ago'
-    #           {%- when "last_month_vs_two_months_ago" -%}
-    #             'Three Months Ago'
-    #           {%- when "last_quarter_vs_two_quarters_ago" -%}
-    #             'Three Quarters Ago'
-    #           {%- when "last_year_vs_two_years_ago" -%}
-    #             'Three Years Ago'
-    #         {%- endcase -%}
-    #         {%- if display_dates_in_trailing_periods._parameter_value == 'true' -%}
-    #           || ' (' || ${period_3_start} || ' to ' ||  ${period_3_end} || ')'
-    #         {%- endif -%}
-    #         -- dimension period: period selection 3 or greater
-    #     {%- endif -%}
-    #     {%- if period_count._parameter_value == 4 -%}
-    #       when ${event_date} between ${period_4_start} and ${period_4_end} then
-    #         {%- if user_period_selection._parameter_value != "none" -%}
-    #           {%- assign comp_value = user_period_selection._parameter_value -%}
-    #         {%- else  -%}
-    #             {%- assign comp_value = period_selection._parameter_value  -%}
-    #         {%- endif -%}
-    #         {%- case comp_value -%}
-    #           {%- when "trailing" or "trailing_7" or "trailing_14" or "trailing_28" or "trailing_30" or "trailing_90" or "trailing_180" or "trailing_365" -%}
-    #             'Three Periods Ago'
-    #           {%- when "trailing_7_lq" or "trailing_14_lq" or "trailing_28_lq" or "trailing_30_lq" or "trailing_90_lq" or "trailing_180_lq" or "trailing_365_lq" -%}
-    #             'Three Quarters Ago'
-    #           {%- when "trailing_7_ly" or "trailing_14_ly" or "trailing_28_ly" or "trailing_30_ly" or "trailing_90_ly" or "trailing_180_ly" or "trailing_365_ly" -%}
-    #           'Three Years Ago'
-    #           {%- when "today_vs_yesterday" -%}
-    #             'Three Days Ago'
-    #           {%- when "yesterday_vs_prior" -%}
-    #             'Four Days Ago'
-    #           {%- when 'wtd_vs_prior_week' -%}
-    #             'Three Weeks Ago'
-    #           {%- when "mtd_vs_prior_month"%}
-    #             'MTD - Three Months Ago'
-    #           {%- when "mtd_vs_prior_quarter" -%}
-    #             'MTD - Three Quarters Ago'
-    #           {%- when "mtd_vs_prior_year" -%}
-    #             'MTD - Three Years Ago'
-    #           {%- when "qtd_vs_prior_quarter" -%}
-    #             'QTD - Three Quarters Ago'
-    #           {%- when "qtd_vs_prior_year" -%}
-    #             'QTD - Same Quarter Three Years Ago'
-    #           {%- when "ytd_vs_prior_year" -%}
-    #             'Three Years Ago'
-    #           {%- when 'last_week_vs_two_weeks_ago' -%}
-    #             'Four Weeks Ago'
-    #           {%- when "last_month_vs_two_months_ago" -%}
-    #             'Four Months Ago'
-    #           {%- when "last_quarter_vs_two_quarters_ago" -%}
-    #             'Four Quarters Ago'
-    #           {%- when "last_year_vs_two_years_ago" -%}
-    #             'Four Years Ago'
-    #         {%- endcase -%}
-    #         {%- if display_dates_in_trailing_periods._parameter_value == 'true' -%}
-    #           || ' (' || ${period_4_start} || ' to ' ||  ${period_4_end} || ')'
-    #         {%- endif -%}
-    #         -- dimension period: period selection 4
-    #       {%- endif -%}
-    #     end ;;
-    # }
-
 # **********************************
 # Pivot and X Axis Dimensions
 # **********************************
@@ -993,7 +746,7 @@ view: main {
       # This dimension is used to establish the proper sort order in the "period" dimension. A numeric sort is needed as the "period" dimension
       # displays human readable form such as "Last Month" or "Prior Period".
       hidden: yes
-      type: string
+      type: number
       sql:
           {%- assign _compare_to_period = compare_to_period._parameter_value -%}
           {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
@@ -1021,10 +774,8 @@ view: main {
           {%- endif -%}
           case
           {% for i in (1.._period_count) -%}
-            {%- assign _zero_index = i | minus:1 -%}
             {%- if i == 1 %}
             when ${event_date} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-
             {%- endif -%}
             {%- if i != 1 %}
               {%- case _compare_to_period %}
@@ -1038,7 +789,6 @@ view: main {
                   {%- else %}
             when ${event_date} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
                   {%- endif -%}
-
                 {%- when 'prior_quarter' %}
                   {%- if _normalize_range_size == 'yes' -%}
             when ${event_date} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
@@ -1063,6 +813,26 @@ view: main {
         ;;
     }
 
+    dimension: fisrt_period_start_date {
+      type: string
+      hidden: yes
+      sql:
+          {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
+          {%- assign _range_start = _range_size | times: 1 -%}
+          {%- assign _period_selection = period_selection._parameter_value -%}
+          {%- if _period_selection == "today" -%}
+              {%- assign _range_size = 1 -%}
+              {%- assign _range_start = _range_size -%}
+          {%- elsif _period_selection == "yesterday" -%}
+              {%- assign _range_size = 1 -%}
+              {%- assign _range_start = 2 -%}
+          {%- elsif _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd" or _period_selection == "ytd" -%}
+              {%- assign _range_size = 0 -%}
+              {%- assign _range_start = 0 -%}
+          {%- endif -%}
+            date_add('days', -{{- _range_start -}}, ${start_date_dim});;
+    }
+
     dimension_group: date_in_period {
       ##
       # Date group used on X axis for time series analysis type charts.
@@ -1072,39 +842,85 @@ view: main {
       description: "Use this as your date dimension when comparing periods. Aligns the all previous periods onto the current period"
       type: time
       # timeframes: [date, quarter, year, month, week, day_of_week,fiscal_month_num, fiscal_quarter, quarter_of_year]
-      sql: dateadd('day', ${day_in_period}, ${period_1_start}) ;;
+      sql: dateadd('day', ${day_in_period}, ${fisrt_period_start_date}) ;;
       convert_tz: no
     }
 
-    # dimension: day_in_period {
-    #   ##
-    #   # Returns a number relative  to the start of the period.
-    #   #
-    #   # Used by the dimension_group "date_in_period" to calculate the date for any given grouping, this dimension can also be used
-    #   # to display the X-Axis in a relative 1, 2, 3 output instead of dates.
-    #   label: "Day in Period"
-    #   view_label: "@{block_field_name}"
-    #   group_label: "X Axis Dimensions"
-    #   description: "Gives the number of days since the start of each periods. Use this to align the event dates onto the same axis, the axes will read 1,2,3, etc."
-    #   type: number
-    #   sql:  case
-    #         when ${event_date} between ${period_1_start} and ${period_1_end}
-    #         then datediff('day', ${period_1_start}, ${event_date})
-    #         when ${event_date} between ${period_2_start} and ${period_2_end}
-    #         then datediff('day', ${period_2_start}, ${event_date})
-    #         {%- if period_count._parameter_value == 3 or period_count._parameter_value == 4 -%}
-    #         when ${event_date} between ${period_3_start} and ${period_3_end}
-    #         then datediff('day', ${period_3_start}, ${event_date})
-    #         {%- endif -%}
-    #         {%- if period_count._parameter_value == 4 -%}
-    #         when ${event_date} between ${period_4_start} and ${period_4_end}
-    #         then datediff('day', ${period_4_start}, ${event_date})
-    #         {%- endif -%}
-    #       end ;;
-    # }
-
-
-
+    dimension: day_in_period {
+      ##
+      # Returns a number relative  to the start of the period.
+      #
+      # Used by the dimension_group "date_in_period" to calculate the date for any given grouping, this dimension can also be used
+      # to display the X-Axis in a relative 1, 2, 3 output instead of dates.
+      label: "Day in Period"
+      view_label: "@{block_field_name}"
+      group_label: "X Axis Dimensions"
+      description: "Gives the number of days since the start of each periods. Use this to align the event dates onto the same axis, the axes will read 1,2,3, etc."
+      type: number
+      sql:
+      {%- assign _compare_to_period = compare_to_period._parameter_value -%}
+          {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
+          {%- assign _range_start = _range_size | times: 1 -%}
+          {%- assign _range_end = 0 -%}
+          {%- assign _period_selection = period_selection._parameter_value -%}
+          {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
+          {%- assign _period_count = period_count._parameter_value -%}
+          {%- assign _additional_days = 0 -%}
+          {%- if _period_selection == "today" -%}
+              {%- assign _range_size = 1 -%}
+              {%- assign _range_start = _range_size -%}
+              {%- assign _range_end = 0 -%}
+              {%- assign _end_period_value = 0 -%}
+          {%- elsif _period_selection == "yesterday" -%}
+              {%- assign _range_size = 1 -%}
+              {%- assign _range_start = 2 -%}
+              {%- assign _range_end = 1 -%}
+              {%- assign _additional_days = 1 %}
+          {%- elsif _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd" or _period_selection == "ytd" -%}
+              {%- assign _range_size = 0 -%}
+              {%- assign _range_start = 0 -%}
+              {%- assign _range_end = 0 -%}
+              {%- assign _additional_days = 0 %}
+          {%- endif -%}
+          case
+          {% for i in (1.._period_count) -%}
+            {%- if i == 1 %}
+            when ${event_date} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('day', date_add('days', -{{- _range_start -}}, ${start_date_dim}), ${event_date})
+            {%- endif -%}
+            {%- if i != 1 %}
+              {%- case _compare_to_period %}
+                {%- when 'prior_period' %}
+            when ${event_date} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('day', date_add('days', -{{- _range_start -}}, ${start_date_dim}), ${event_date})
+                {%- when 'prior_week' %}
+            when ${event_date} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date})
+                {%- when 'prior_month' %}
+                  {%- if _normalize_range_size == 'yes' %}
+            when ${event_date} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day', date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date})
+                  {%- else %}
+            when ${event_date} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${start_date_dim}), ${event_date})
+                  {%- endif -%}
+                {%- when 'prior_quarter' %}
+                  {%- if _normalize_range_size == 'yes' -%}
+            when ${event_date} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day', date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date})
+                  {%- else -%}
+            when ${event_date} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date})
+                  {%- endif -%}
+                {%- when 'prior_year' %}
+                  {%- if _normalize_range_size == 'yes' -%}
+            when ${event_date} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day', date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date})
+                  {%- else -%}
+            when ${event_date} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('day', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date})
+                  {%- endif -%}
+              {%- endcase -%}
+            {%- endif -%}
+            {%- if _compare_to_period == 'prior_period' -%}
+              {%- assign _i_plus_one = i | plus: 1 -%}
+              {%- assign _range_end = _range_start | plus: 1 -%}
+              {%- assign _range_start = _range_size | times: _i_plus_one | plus: i | plus: _additional_days | floor -%}
+            {%- endif -%}
+          {% endfor %}
+          end;;
+    }
 
     # **********************
     # SQL Always Where
@@ -1113,7 +929,6 @@ view: main {
       hidden: yes
       sql:
           {%- assign comp_val_set = period_selection._parameter_value -%}
-
               {%- if comp_val_set != "none" -%}
                 {%- assign _compare_to_period = compare_to_period._parameter_value -%}
         {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
@@ -1122,56 +937,28 @@ view: main {
         {%- assign _period_selection = period_selection._parameter_value -%}
         {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
         {%- comment -%}Check for invalid states{%- endcomment -%}
-        -- _compare_to_period: {{_compare_to_period}}
-        -- _range_size: {{_range_size}}
-        -- _range_start: {{_range_start}}
-        -- _period_selection: {{_period_selection}}
-        {%- if (_compare_to_period == 'prior_week' and _range_size > 7 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior week over 7 days. {{_range_size}} days selected.'
-        {%- elsif (_compare_to_period == 'prior_month' and _range_size > 28 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior month over 28 days. {{_range_size}} days selected.'
-        {%- elsif (_compare_to_period == 'prior_quarter' and _range_size > 91 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior quarter over 91 days. {{_range_size}} days selected.'
-        {%- elsif (_compare_to_period == 'prior_year' and _range_size > 365 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior year over 365 days. {{_range_size}} days selected.'
-        {%- elsif (_period_selection == 'wtd' or _period_selection == 'mtd' or _period_selection == 'qtd' or _period_selection == 'ytd'
-           or _period_selection == 'lw' or _period_selection == 'lm'  or _period_selection == 'lq' or _period_selection == 'ly')
-           and _compare_to_period == 'prior_period' %}
-            'ERROR: Cannot use {{_period_selection}} with a Prior Period compare to selection'
-        {%- elsif _period_selection == 'mtd' and _compare_to_period == 'prior_week' %}
-            'ERROR: Cannot use Month to Date with a Prior Week compare to selection'
-        {%- elsif _period_selection == 'qtd' and (_compare_to_period == 'prior_week' or _compare_to_period == 'prior_month') %}
-            'ERROR: Cannot use Quarter to Date with a Prior Week or Prior Month compare to selection'
-        {%- elsif _period_selection == 'ytd' and (_compare_to_period == 'prior_week' or _compare_to_period == 'prior_month' or _compare_to_period == 'prior_quarter') %}
-            'ERROR: Cannot use Year to Date can only be used with a Prior Year compare to selection'
-        {%- else -%}
-            {%- assign _period_count = period_count._parameter_value -%}
-            {%- assign _additional_days = 0 -%}
-            {%- if _period_selection == "today" -%}
-                {%- assign _range_size = 1 -%}
-                {%- assign _range_start = _range_size -%}
-                {%- assign _range_end = 0 -%}
-                {%- assign _end_period_value = 0 -%}
-            {%- elsif _period_selection == "yesterday" -%}
-                {%- assign _range_size = 1 -%}
-                {%- assign _range_start = 2 -%}
-                {%- assign _range_end = 1 -%}
-                {%- assign _additional_days = 1 %}
-            {%- elsif _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd" or _period_selection == "ytd" -%}
-                {%- assign _range_size = 0 -%}
-                {%- assign _range_start = 0 -%}
-                {%- assign _range_end = 0 -%}
-                {%- assign _additional_days = 0 %}
-            {%- endif -%}
-            {%- assign _period_count_values = "1st,2nd,3rd,4th,5th,6th,7th,8th,9th,10th,11th,12th,13th,14th,15th,16th,17th,18th,19th,20th,21st,22nd,23rd,24th,25th,26th,27th,28th,29th,30th,31st,32nd,33rd,34th,35th,36th,37th,38th,39th,40th,41st,42nd,43rd,44th,45th,46th,47th,48th,49th,50th,51st,52nd,53rd" | split: ',' -%}
 
+        {%- assign _period_count = period_count._parameter_value -%}
+        {%- assign _additional_days = 0 -%}
+        {%- if _period_selection == "today" -%}
+            {%- assign _range_size = 1 -%}
+            {%- assign _range_start = _range_size -%}
+            {%- assign _range_end = 0 -%}
+            {%- assign _end_period_value = 0 -%}
+        {%- elsif _period_selection == "yesterday" -%}
+            {%- assign _range_size = 1 -%}
+            {%- assign _range_start = 2 -%}
+            {%- assign _range_end = 1 -%}
+            {%- assign _additional_days = 1 %}
+        {%- elsif _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd" or _period_selection == "ytd" -%}
+            {%- assign _range_size = 0 -%}
+            {%- assign _range_start = 0 -%}
+            {%- assign _range_end = 0 -%}
+            {%- assign _additional_days = 0 %}
+        {%- endif -%}
         {%- for i in (1.._period_count) -%}
-          {%- assign _zero_index = i | minus:1 -%}
-          {%- assign _period_prefix = _period_count_values[_zero_index] -%}
-          {%- assign _period_suffix = period_name_selection -%}
           {%- if i == 1 %}
               ${event_date} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-
           {%- endif -%}
           {%- if i != 1 %}
             {%- case _compare_to_period %}
@@ -1205,11 +992,10 @@ view: main {
             {%- assign _range_start = _range_size | times: _i_plus_one | plus: i | plus: _additional_days | floor -%}
           {%- endif -%}
         {% endfor %}
-      {%- endif -%}
-              {%- else -%}
-                -- PoP Block is not in use. Default to 1=1 to avoid errors.
-                1 = 1
-              {%- endif -%};;
+      {%- else -%}
+        -- PoP Block is not in use. Default to 1=1 to avoid errors.
+        1 = 1
+      {%- endif -%};;
     }
 
 
