@@ -296,7 +296,7 @@ view: main {
     default_value: "1"
   }
 
-  parameter: display_dates_in_trailing_periods {
+  parameter: display_dates_in_period_labels {
     group_label: "Tile Only Filters"
     view_label: "@{block_field_name}"
     description: "Display the dates alongside the periods. For example 'Current Period - 2021-01-01 to 2021-04-01'. Note that this will cause any custom colors set for the series to break when the dates change (i.e. the next day)."
@@ -404,7 +404,7 @@ view: main {
     type: date_raw
     sql:
       {%- if as_of_date._parameter_value == 'NULL' -%}
-         date_add('seconds', 86399, date(${getdate_func}::timestamp))
+         date_add('seconds', 86399, date(${getdate_func}))
       {%- else -%}
         date_add('seconds', 86399, {%- parameter as_of_date -%})
       {%- endif -%};;
@@ -514,23 +514,30 @@ view: main {
            {%- endcase -%};;
   }
 
+  # *************************************************************************************
+  # Period Block
+  # *************************************************************************************
+
   dimension: period {
     view_label: "@{block_field_name}"
     label: "Period Pivot Dev"
     group_label: "Pivot Dimensions"
     type: string
     order_by_field: order_for_period
+    # Notes:
+    # 1. Invalid Date and Duration Combinations | The first portion of this script checks to make sure the user hasn't selected a combo of
+    #    trailing or other durations that would cause overlap. If comparing week over week, the max trailing is 7. For month 28, quarter 90,
+    #    and year 365.
     #
-    # Note on Invalid Date and Duration Combinations. The first portion of this script checks to make sure the user hasn't selected a combo of
-    # trailing or other durations that would cause overlap. If comparing week over week, the max trailing is 7. For month 28, quarter 90,
-    # and year 365.
+    # 2. Usage of times: 1 | This is used to convert the value from a string to a number. By default all values in Liquid are strings. Numeric
+    #    comparison can't happen with a string. This trick converts the value to an int or a float. | floor is used if conversion to a float occurs
+    #    when it's unwanted.
     #
-    # Note on | times: 1: This is used to convert the value from a string to a number. By default all values in Liquid are strings. Numeric
-    # comparison can't happen with a string. This trick converts the value to an int or a float. | floor is used if conversion to a float occurs
-    # when it's unwanted.
-    #
-    # _additional_days: This is needed for selections like yesterday. An additional day is needed with a period size of 1 in the second loop,
+    # 3. _additional_days | This is needed for selections like yesterday. An additional day is needed with a period size of 1 in the second loop,
     #                   or the day count will be short by 1. Default is zero, the value is only set when yesterday is selected.
+    #
+    # 4. Minus 1 on range end | -{{- _range_end | minus: 1 -}} The minus 1 is needed here to align the range sizes. If you were using a 7 day period for example,
+    #    you want date_add('days', -6, end_date).
     #
     sql:
         {%- assign _compare_to_period = compare_to_period._parameter_value -%}
@@ -581,32 +588,42 @@ view: main {
             {%- assign _zero_index = i | minus: 1 -%}
             {%- assign _period_prefix = _period_count_values[_zero_index] -%}
             {%- assign _period_suffix = 'Period' -%}
+            {%- assign _period_name = "'" | append: _period_prefix | append: " " | append: _period_suffix | append: "'" -%}
             {%- if i == 1 %}
-            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
+                 {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
+                    || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), 'MM-DD-YY') || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), 'MM-DD-YY') || ')'
+                 {%- endif -%}
             {%- endif -%}
             {%- if i != 1 %}
               {%- case compare_to_period._parameter_value %}
                 {%- when 'prior_period' %}
-            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
+                  {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
+                      || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), 'MM-DD-YY') || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), 'MM-DD-YY') || ')'
+                  {%- endif -%}
                 {%- when 'prior_week' %}
-            when ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{ _period_name }}
+                  {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
+                      || ' (' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), 'MM-DD-YY') || ' to ' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})), 'MM-DD-YY') || ')'
+                  {%- endif -%}
                 {%- when 'prior_month' %}
                   {%- if normalize_range_size._parameter_value == 'yes' %}
-            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- else %}
-            when ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- endif -%}
                 {%- when 'prior_quarter' %}
                   {%- if normalize_range_size._parameter_value == 'yes' -%}
-            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- else -%}
-            when ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('ms', -1, date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- endif -%}
                 {%- when 'prior_year' %}
                   {%- if normalize_range_size._parameter_value == 'yes' -%}
-            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- else -%}
-            when ${event_date_timestamp} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+            when ${event_date_timestamp} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- endif -%}
               {%- endcase -%}
             {%- endif -%}
@@ -655,31 +672,31 @@ view: main {
           case
           {% for i in (1.._period_count) -%}
           {%- if i == 1 %}
-          when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
+          when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{i}}
           {%- endif -%}
           {%- if i != 1 %}
             {%- case compare_to_period._parameter_value %}
               {%- when 'prior_period' %}
-          when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
+          when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{i}}
               {%- when 'prior_week' %}
-          when ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
               {%- when 'prior_month' %}
                 {%- if normalize_range_size._parameter_value == 'yes' %}
-          when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28 }}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28 }}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
                 {%- else %}
-          when ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
                 {%- endif -%}
               {%- when 'prior_quarter' %}
                 {%- if normalize_range_size._parameter_value == 'yes' -%}
-          when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91 }}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91 }}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
                 {%- else -%}
-          when ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('ms', -1, date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
                 {%- endif -%}
               {%- when 'prior_year' %}
                 {%- if normalize_range_size._parameter_value == 'yes' -%}
-          when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
                 {%- else -%}
-          when ${event_date_timestamp} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then {{i}}
+          when ${event_date_timestamp} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
                 {%- endif -%}
             {%- endcase -%}
           {%- endif -%}
@@ -777,31 +794,31 @@ view: main {
           case
           {% for i in (1.._period_count) -%}
             {%- if i == 1 %}
-            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- _range_start -}}, ${start_date_dim}), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then datediff('seconds', date_add('days', -{{- _range_start -}}, ${start_date_dim}), ${event_date_timestamp})
             {%- endif -%}
             {%- if i != 1 %}
               {%- case _compare_to_period %}
                 {%- when 'prior_period' %}
-            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- _range_start -}}, ${start_date_dim}), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then datediff('seconds', date_add('days', -{{- _range_start -}}, ${start_date_dim}), ${event_date_timestamp})
                 {%- when 'prior_week' %}
-            when ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
                 {%- when 'prior_month' %}
                   {%- if _normalize_range_size == 'yes' %}
-            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
                   {%- else %}
-            when ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${start_date_dim}), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${start_date_dim}), ${event_date_timestamp})
                   {%- endif -%}
                 {%- when 'prior_quarter' %}
                   {%- if _normalize_range_size == 'yes' -%}
-            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
                   {%- else -%}
-            when ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
                   {%- endif -%}
                 {%- when 'prior_year' %}
                   {%- if _normalize_range_size == 'yes' -%}
-            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
                   {%- else -%}
-            when ${event_date_timestamp} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))) then datediff('seconds', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
+            when ${event_date_timestamp} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_timestamp})
                   {%- endif -%}
               {%- endcase -%}
             {%- endif -%}
@@ -845,30 +862,30 @@ view: main {
           {%- endif -%}
           {%- for i in (1.._period_count) -%}
             {%- if i == 1 %}
-                ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
+                ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim})
             {%- endif -%}
             {%- if i != 1 %}
               {%- case _compare_to_period %}
                 {%- when 'prior_period' %}
-                  or ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('ms', -1, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
+                  or ${event_date_timestamp} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim})
                 {%- when 'prior_week' %}
-                  or ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                  or ${event_date_timestamp} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                 {%- when 'prior_month' %}
                   {%- if _normalize_range_size == 'yes' %}
-                    or ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                    or ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 28}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- else -%}
-                    or ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                    or ${event_date_timestamp} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endif -%}
 
                 {%- when 'prior_quarter' %}
                   {%- if _normalize_range_size == 'yes' %}
-                    or ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                    or ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 91}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- else -%}
-                    or ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('ms', -1, date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                    or ${event_date_timestamp} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endif -%}
                 {%- when 'prior_year' %}
                   {%- if _normalize_range_size == 'yes' %}
-                    or ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('ms', -1, date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                    or ${event_date_timestamp} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- else -%}
                   {%- endif -%}
               {%- endcase -%}
