@@ -434,8 +434,8 @@ view: main {
               dateadd('days', -1, date_trunc('quarter', ${getdate_final}))
            {%- when "last_full_year" -%}
               dateadd('days', -1, date_trunc('year', ${getdate_final}))
-               {%- else -%}
-              ${getdate_final} -- No cases matched
+           {%- else -%}
+              ${getdate_final}
           {%- endcase -%}
         {%- else -%}
           ${getdate_final}
