@@ -380,13 +380,7 @@ view: main {
     hidden: yes
     type: date_raw
     convert_tz: no
-    sql:
-    {%- if convert_tz._parameter_value == 'true' -%}
-       convert_timezone('utc', '{{ _query._query_timezone }}', ${event_date})
-    {%- else -%}
-        ${event_date}
-    {%- endif -%}
-    ;;
+    sql: convert_timezone('UTC', '{{ _query._query_timezone }}', ${event_date});;
   }
 
   dimension: getdate_func {
@@ -398,15 +392,14 @@ view: main {
     hidden: yes
     type: date_raw
     sql:
-    {%- if _query._query_timezone != 'utc' -%}
-        convert_timezone('utc', '{{ _query._query_timezone }}', getdate())
+    {%- if _query._query_timezone != 'UTC' -%}
+        convert_timezone('UTC', '{{ _query._query_timezone }}', getdate())
     {%- else -%}
         getdate()
     {%- endif -%};;
     convert_tz: no
   }
-
-  dimension: end_date_dim {
+  dimension: end_date_dim_as_of_mod {
     # This dimension performes two key operations:
     # 1. If an as of date is selected, it subs that instead of the real date.
     # 2. It converts the date to one second before midnight. For example, if getdate() returns 2022-01-01 05:03:00, it will first be converted to 2022-01-01 00:00:00, then
@@ -421,8 +414,7 @@ view: main {
       {%- endif -%};;
     convert_tz: no
   }
-
-  dimension: end_date_dim_pre_as_of_mod {
+  dimension: end_date_dim {
     ##
     # This will return the date to be used as the end date for Period 1 with "exclude days" filters or "as date" options applied
     type: date_raw
@@ -431,43 +423,55 @@ view: main {
     sql:{%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
           {%- case exclude_days._parameter_value -%}
            {%- when "999" -%}
-              -- Find max date in the available data and set to today. `origin_event_date` and `origin_table_name` are both set in the view.
-              (select max(${origin_event_date}) from ${origin_table_name})
+              convert_timezone('UTC', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name}))
            {%- when "1" -%}
-              dateadd('days', -1, ${end_date_dim})
+              dateadd('seconds', -1, date(${end_date_dim_as_of_mod}))
            {%- when "2" -%}
-              dateadd('days', -2, ${end_date_dim})
+              dateadd('seconds', -86401, date(${end_date_dim_as_of_mod}))
            {%- when "last_full_week" -%}
-              dateadd('days', -1, date_trunc('week', ${end_date_dim}))
+              dateadd('seconds', -1, date_trunc('week', date(${end_date_dim_as_of_mod})))
            {%- when "last_full_month" -%}
-              dateadd('days', -1, date_trunc('month', ${end_date_dim}))
+              dateadd('seconds', -1, date_trunc('month', date(${end_date_dim_as_of_mod})))
            {%- when "last_full_quarter" -%}
-              dateadd('days', -1, date_trunc('quarter', ${end_date_dim}))
+              dateadd('seconds', -1, date_trunc('quarter', date(${end_date_dim_as_of_mod})))
            {%- when "last_full_year" -%}
-              dateadd('days', -1, date_trunc('year', ${end_date_dim}))
+              dateadd('seconds', -1, date_trunc('year', date(${end_date_dim_as_of_mod})))
            {%- else -%}
-              ${end_date_dim}
+              ${end_date_dim_as_of_mod}
           {%- endcase -%}
         {%- else -%}
-          ${end_date_dim}
+          ${end_date_dim_as_of_mod}
         {%- endif -%}
         ;;
   }
 
   dimension: start_date_pre {
+    # The end date used / displayed by the Looker Period Control block is inclusive. This means that while a normal date subtraction operation like date_add('days', -30, '2022-05-31') would
+    # result in a date of 2022-05-01, that's not the expected oUTCome. In reality, the displayed date 2022-05-31 is 2022-05-31 23:59:59. To account for this, the date function is truncated,
+    # and a day is added to the start date.
     hidden: yes
     sql:
-      {%- if snap_start_date_to._parameter_value != 'none' -%}
+      {%- if snap_start_date_to._parameter_value != 'none' and compare_to_period._parameter_value == 'none' -%}
           date_trunc(${snap_dim},
+      {%- elsif snap_start_date_to._parameter_value != 'none' and compare_to_period._parameter_value != 'none' -%}
+          -- WARNING: Snap to date is being ignored. Snap to cannot be used in conjunction with a period over period block. It is designed for non-pop time fliters.
       {%- endif -%}
 
       {%- if as_of_date._parameter_value == 'NULL' -%}
-          date_add('seconds', 86399, date(${getdate_func}))
+          {%- if period_selection._parameter_value == 'trailing' -%}
+              date_add('days', 1, date(${getdate_func}))
+          {%- else -%}
+              date(${getdate_func})
+          {%- endif -%}
       {%- else -%}
-          date_add('seconds', 86399, {%- parameter as_of_date -%})
+          {%- if period_selection._parameter_value == 'trailing' -%}
+              date_add('days', 1, {%- parameter as_of_date -%})
+          {%- else -%}
+              date({%- parameter as_of_date -%})
+          {%- endif -%}
       {%- endif -%}
 
-      {%- if snap_start_date_to._parameter_value != 'none' -%}
+      {%- if snap_start_date_to._parameter_value != 'none' and compare_to_period._parameter_value == 'none' -%}
           )
       {%- endif -%};;
   }
@@ -828,22 +832,20 @@ view: main {
     # timeframes: [date, quarter, year, month, week, day_of_week,fiscal_month_num, fiscal_quarter, quarter_of_year]
     sql:
       {%- if period_count._parameter_value != 1 -%}
-        dateadd('seconds', ${day_in_period}, ${first_period_start_date})
+        dateadd('seconds', ${seconds_from_start_to_date}, ${first_period_start_date})
       {%- else -%}
         ${event_date_tz_convert}
       {%- endif -%};;
     convert_tz: no
   }
 
-  dimension: day_in_period {
+  dimension: seconds_from_start_to_date {
     ##
     # Returns a number relative  to the start of the period.
     #
     # Used by the dimension_group "date_in_period" to calculate the date for any given grouping, this dimension can also be used
     # to display the X-Axis in a relative 1, 2, 3 output instead of dates.
-    label: "Day in Period"
-    view_label: "@{block_field_name}"
-    group_label: "X Axis Dimensions"
+    hidden: yes
     description: "Gives the number of days since the start of each periods. Use this to align the event dates onto the same axis, the axes will read 1,2,3, etc."
     type: number
     sql:
@@ -929,6 +931,115 @@ view: main {
             {%- endif -%}
           {% endfor %}
           end;;
+  }
+
+  dimension: seconds_in_period {
+    label: "Seconds in Period"
+    view_label: "@{block_field_name}"
+    group_label: "Period Duration"
+    description: "Provides the number of seconds in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size."
+    type: number
+    sql:
+          {%- assign _compare_to_period = compare_to_period._parameter_value -%}
+          {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
+          {%- assign _range_start = _range_size | times: 1 -%}
+          {%- assign _range_end = 0 -%}
+          {%- assign _period_selection = period_selection._parameter_value -%}
+          {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
+          {%- assign _period_count = period_count._parameter_value | times: 1 -%}
+          {%- assign _additional_days = 0 -%}
+          {%- if _period_selection == "today" -%}
+              {%- assign _range_size = 1 -%}
+              {%- assign _range_start = _range_size -%}
+              {%- assign _range_end = 0 -%}
+              {%- assign _end_period_value = 0 -%}
+          {%- elsif _period_selection == "yesterday" -%}
+              {%- assign _range_size = 1 -%}
+              {%- assign _range_start = 2 -%}
+              {%- assign _range_end = 1 -%}
+              {%- assign _additional_days = 1 %}
+          {%- elsif _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd" or _period_selection == "ytd" -%}
+              {%- assign _range_size = 0 -%}
+              {%- assign _range_start = 0 -%}
+              {%- assign _range_end = 0 -%}
+              {%- assign _additional_days = 0 %}
+          {% endif %}
+          {%- if debug._parameter_value == 'true' %}
+              -- *****************************************
+              -- Compare To:       {{_compare_to_period}}
+              -- Range Size:       {{_range_size}}
+              -- Additional Days:  {{ _additional_days }}
+              -- *****************************************
+          {%- endif %}
+          case
+          {% for i in (1.._period_count) %}
+            {% if debug._parameter_value == 'true' %}
+              -- *****************************************
+              -- Range Start:      {{ _range_start }}
+              -- Range End:        {{ _range_end }}
+              -- *****************************************
+            {%- endif %}
+            {%- if i == 1 %}
+                    when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then datediff('seconds',  date_add('days', -{{- _range_start -}}, ${start_date_dim}),  date_add('days', -{{- _range_end -}}, ${end_date_dim}))
+            {%- endif -%}
+            {%- if i != 1 %}
+              {%- case _compare_to_period %}
+                {%- when 'prior_period' %}
+                    when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}) then datediff('seconds', date_add('days', -{{- _range_start -}}, ${start_date_dim}), date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}))
+
+                {%- when 'prior_week' %}
+                    when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+
+                {%- when 'prior_month' %}
+                {%- if _normalize_range_size == 'true' %}
+                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+
+                {%- elsif _normalize_range_size != 'true' %}
+                    when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                {%- endif -%}
+
+                {%- when 'prior_quarter' %}
+                {%- if _normalize_range_size == 'true' -%}
+                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+
+                {%- elsif _normalize_range_size != 'true' %}
+                    when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})),  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                {%- endif -%}
+
+                {%- when 'prior_year' %}
+                {%- if _normalize_range_size == 'true' -%}
+                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+
+                {%- elsif _normalize_range_size != 'true' %}
+                    when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
+                {%- endif -%}
+              {%- endcase -%}
+            {%- endif -%}
+            {%- if _compare_to_period == 'prior_period' -%}
+                {%- assign _i_plus_one = i | plus: 1 -%}
+                {%- assign _range_end = _range_start | plus: 1  -%}
+                {%- assign _range_start = _range_size | times: _i_plus_one | plus: _additional_days | floor -%}
+            {%- endif -%}
+          {% endfor %}
+          end;;
+  }
+
+  dimension: minutes_in_period {
+    label: "Minutes in Period"
+    view_label: "@{block_field_name}"
+    group_label: "Period Duration"
+    description: "Provides the number of minutes in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size."
+    type: number
+    sql:${seconds_in_period}/60;;
+  }
+
+  dimension: days_in_period {
+    label: "Days in Period"
+    view_label: "@{block_field_name}"
+    group_label: "Period Duration"
+    description: "Provides the number of days in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size. For example, revenue per day."
+    type: number
+    sql: round(${seconds_in_period}::decimal/86400, 4);;
   }
 
   dimension: sql_always_where_inject {
