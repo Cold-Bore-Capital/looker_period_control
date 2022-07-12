@@ -7,7 +7,7 @@ constant: block_field_name {
 
 constant: date_display_format {
   # Set the date format for the period display (controled by the Display Dates in Period Labels" filter."
-  value: "YYYY-MM-DD HH24:MI"
+  value: "YYYY-MM-DD"   # YYYY-MM-DD HH24:MI
   export: override_optional
 }
 
