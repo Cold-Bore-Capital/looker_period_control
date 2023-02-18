@@ -14,13 +14,6 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-###
-# TODO List
-#  - Set the default number of days for a normalized month or quarter to the most recent month or quarter.
-#  - You can make a date display block using your date between function. You can simply tie the date display block to
-#    your dates table, then run a min and a max function on the resulting values. This will display the min and max values
-#    in the range super easy.
-
 
 
 view: main {
