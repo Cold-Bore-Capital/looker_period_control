@@ -17,7 +17,7 @@ Unlink many existing period over period blocks for Looker, the Looker Period Con
   * Yesterday
   * Two Days Ago
   * End of Last Full Week, Month, Quarter, Year
-* Normalize Range Sizes Option. Normalize the size of a month or quarter to a user settable value (default is 30 days for a month, and 90 days for a quarter). This feature allows you to ensure you are comparing the same number of days in each period.
+
 
 ## Installation
 To use the Looker Period Control Block, you will need to add the external package to your manifest file, add a short bit of code to your model, then add several dimensions to your view along with an include.
@@ -75,10 +75,10 @@ Copy and paste the following template into the file, updating the fields as spec
   parameter: convert_tz {
     # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
     # not set this value to yes if you only have a date. Bad things will happen.
-    default_value: "no"
+    default_value: "yes"
 
     # --- Do Not Edit Below this Line ----
-    type: string
+    type: yesno
     hidden: yes
     # --- End No Not Edit block       ----
   }
@@ -107,8 +107,12 @@ Copy and paste the following template into the file, updating the fields as spec
   }
   
   dimension: origin_table_name {
-    # Instructions: Replace with the name of the origin table
-    sql: <replace_with_schema>.<replace_with_origin_table_name>;;
+    # Instructions: The origin_table_name dimension allows for the use of "Last Data" filter option. If you are 
+    # using a PDT, you must hand enter the schema and table name of whatever table contains the date dimension. 
+    # For example, if you had a PDT that mostly derived from shop.orders, you would enter that. If using a 
+    # standard SQL table, you can enter the name of the view and SQL_TABLE_NAME. For example ${my_view.
+    # SQL_TABLE_NAME}.
+    sql: ${<replace_with_view_name>.SQL_TABLE_NAME} OR <replace with origin schema and table>;;
     # --- Do Not Edit Below this Line ----
     type: string
     hidden: yes
@@ -141,10 +145,10 @@ Copy and paste the following template into the file, updating the fields as spec
   parameter: convert_tz {
     # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
     # not set this value to yes if you only have a date. Bad things will happen.
-    default_value: "no"
+    default_value: "yes"
 
     # --- Do Not Edit Below this Line ----
-    type: string
+    type: yesno
     hidden: yes
     # --- End No Not Edit block       ----
   }
@@ -173,8 +177,12 @@ Copy and paste the following template into the file, updating the fields as spec
   }
   
   dimension: origin_table_name {
-    # Instructions: Replace with the name of the origin table
-    sql: main.fct_orders;;
+    # Instructions: The origin_table_name dimension allows for the use of "Last Data" filter option. If you are 
+    # using a PDT, you must hand enter the schema and table name of whatever table contains the date dimension. 
+    # For example, if you had a PDT that mostly derived from shop.orders, you would enter that. If using a 
+    # standard SQL table, you can enter the name of the view and SQL_TABLE_NAME. For example ${my_view.
+    # SQL_TABLE_NAME}.
+    sql: ${my_view.SQL_TABLE_NAME};;
     # --- Do Not Edit Below this Line ----
     type: string
     hidden: yes
