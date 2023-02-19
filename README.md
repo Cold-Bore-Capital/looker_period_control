@@ -192,3 +192,31 @@ Copy and paste the following template into the file, updating the fields as spec
   #------------ End Looker Period Control Block ------------
   ```
 
+## Usage
+
+### Filters
+
+#### Tile Only Filters
+Tile only filters are designed to be used within a single tile, not on a dashboard. 
+
+##### Debug Mode (Yes / No)
+
+Debug mode will place a block of SQL comment code into the rendered SQL with information about the current filter state. It should not be necassary unless you are activly developing for the period control block. The block will look like this
+
+```sql
+-- *****************************************
+-- As of Value:       NULL
+-- Period Selection:  trailing
+-- Exclude Value:     999
+-- Snap Start Date:   none
+-- Compare to Period: prior_month
+-- Range Size:        2
+-- Additional Days:   0
+-- Range Start:       2
+-- Range End:         0
+-- Convert TZ:        true
+-- *****************************************
+```
+
+##### Display Dates in Period Labels 
+This filter turns on date display in your axis labels. 
