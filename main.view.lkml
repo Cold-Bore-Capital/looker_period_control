@@ -74,7 +74,7 @@ view: main {
   parameter: exclude_days {
     alias: [user_exclude_days]
     description: "Allows for an exclusion of the current date, two days ago, last data found in the table, or the last completed week, month, quarter, year."
-    label: "Tile Exclude Days"
+    label: "Exclude Days"
     group_label: "Tile or Dashboard Filters"
     view_label: "@{block_field_name}"
     type: unquoted
@@ -126,14 +126,6 @@ view: main {
     allowed_value: {
       label: "Trailing"
       value: "trailing"
-    }
-    allowed_value: {
-      label: "Today"
-      value: "today"
-    }
-    allowed_value: {
-      label: "Yesterday"
-      value: "yesterday"
     }
     allowed_value: {
       label: "Week to Date"
@@ -201,15 +193,6 @@ view: main {
       value: "prior_year"
     }
     default_value: "none"
-  }
-
-  parameter: normalize_range_size {
-    label: "Normalize Range Sizes"
-    description: "When comparing ranges like month over month, or quarter over quarter, differences in the number of days in a month can cause different range sizes. Setting this value to Yes will use 28 days in a month, 91 days in a quarter, and 365 days in a year instead of the actual values"
-    view_label: "@{block_field_name}"
-    group_label: "Tile or Dashboard Filters"
-    type: yesno
-    default_value: "yes"
   }
 
   parameter: debug {
@@ -350,8 +333,8 @@ view: main {
     type: date_raw
     convert_tz: no
     sql:
-      {%- if convert_tz._parameter_value == 'yes' -%}
-      convert_timezone('UTC', '{{ _query._query_timezone }}', ${event_date})
+      {%- if convert_tz._parameter_value == 'true' -%}
+      convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', ${event_date})
       {%- else -%}
         ${event_date}
       {%- endif -%};;
@@ -368,8 +351,8 @@ view: main {
     hidden: yes
     type: date_raw
     sql:
-    {%- if _query._query_timezone != 'UTC' -%}
-        convert_timezone('UTC', '{{ _query._query_timezone }}', getdate())
+    {%- if _query._query_timezone != '@{database_time_zone}' -%}
+        convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', getdate())
     {%- else -%}
         getdate()
     {%- endif -%};;
@@ -390,13 +373,10 @@ view: main {
     type: date_raw
     sql:
       {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value == '0' -%}
-         {% if debug._parameter_value == 'true' %}-- No as of date, and no exclude days parameter. {% endif %}
          date_add('seconds', 86399, date(${getdate_func}))
       {%- elsif as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
-          {% if debug._parameter_value == 'true' %}-- No As of date, exclude parameter {% parameter exclude_days %} {% endif %}
           ${getdate_func}
       {%- else -%}
-        {% if debug._parameter_value == 'true' %}-- As of date set {% endif %}
         date_add('seconds', 86399, {%- parameter as_of_date -%})
       {%- endif -%};;
     convert_tz: no
@@ -426,8 +406,8 @@ view: main {
           {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
             {%- case exclude_days._parameter_value -%}
              {%- when "999" -%}
-                {%- if convert_tz._parameter_value == "yes" -%}
-                  convert_timezone('UTC', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name}))
+                {%- if convert_tz._parameter_value == 'true' -%}
+                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name}))
                 {%- else -%}
                   (select max(${origin_event_date}) from ${origin_table_name})
                 {%- endif -%}
@@ -458,8 +438,9 @@ view: main {
     # it works.
     hidden: yes
     sql:
-    {%- if convert_tz._parameter_value == "yes" -%}
-     date_diff('days', convert_timezone('UTC', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name})), current_date)
+    {%- if convert_tz._parameter_value == 'true' -%}
+     -- I also triggered
+     date_diff('days', convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name})), current_date)
     {%- else -%}
       date_diff('days', (select max(${origin_event_date}) from ${origin_table_name}), current_date)
     {%- endif -%} ;;
@@ -524,7 +505,7 @@ view: main {
     # be set to zero, relying on the date trunc operation to set the start date of the period.
     #
     # Notes:
-    #   1. The else case handles all trailing, today, and yesterday selections.
+    #   1. The else case handles trailing selection
     hidden: yes
     type: date_raw
     convert_tz: no
@@ -578,7 +559,6 @@ view: main {
     hidden: yes
     sql: {%- case period_selection._parameter_value -%}
               {%- when "trailing" -%} 'Period'
-              {%- when 'today' or "yesterday" -%} 'Day'
               {%- when "wtd" or "lw" -%} 'Week'
               {%- when "mtd" or "lm" -%} 'Month'
               {%- when "qtd" or "lq" -%} 'Quarter'
@@ -588,28 +568,40 @@ view: main {
 
   dimension: invalid_state_warning {
     description: "This can be used on a dashboard to indicate to the user where an invalid filter selection state exists."
-    sql:
-        {%- assign _period_selection = period_selection._parameter_value -%}
+    view_label: "@{block_field_name}"
+    label: "Filter Warning Block"
+    group_label: "Display Blocks"
+    type: string
+    sql:{%- assign _period_selection = period_selection._parameter_value -%}
         {%- assign _compare_to_period = compare_to_period._parameter_value -%}
         {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
-        {%- if (_compare_to_period == 'prior_week' and _range_size > 7 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior week over 7 days. {{_range_size}} days selected.'
+        {%- if _compare_to_period == 'prior_week' and _range_size > 7 and _period_selection == 'trailing' %}
+            'ERROR: Cannot compare prior week over 7 days. {{_range_size}} days selected.'
         {%- elsif (_compare_to_period == 'prior_month' and _range_size > @{days_in_standard_month} and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior month over @{days_in_standard_month} days. {{_range_size}} days selected.'
+            'ERROR: Cannot compare prior month over @{days_in_standard_month} days. {{_range_size}} days selected.'
         {%- elsif (_compare_to_period == 'prior_quarter' and _range_size > @{days_in_standard_quarter} and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior quarter over @{days_in_standard_quarter} days. {{_range_size}} days selected.'
+            'ERROR: Cannot compare prior quarter over @{days_in_standard_quarter} days. {{_range_size}} days selected.'
         {%- elsif (_compare_to_period == 'prior_year' and _range_size > 365 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior year over 365 days. {{_range_size}} days selected.'
+            'ERROR: Cannot compare prior year over 365 days. {{_range_size}} days selected.'
         {%- elsif (_period_selection == 'wtd' or _period_selection == 'mtd' or _period_selection == 'qtd' or _period_selection == 'ytd'
            or _period_selection == 'lw' or _period_selection == 'lm'  or _period_selection == 'lq' or _period_selection == 'ly')
            and _compare_to_period == 'prior_period' %}
             'ERROR: Cannot use {{_period_selection}} with a Prior Period compare to selection'
+        {%- elsif (_period_selection == 'lq' or _period_selection == 'ly') and (_compare_to_period == 'prior_month' or _compare_to_period == 'prior_week') -%}
+            'ERROR: Cannot use last quarter or last year with a compare to of prior month or week.'
+
+        {%- elsif _period_selection == 'ly' and (_compare_to_period == 'prior_month' or _compare_to_period == 'prior_week' or _compare_to_period == 'prior_quarter') -%}
+            'ERROR: Cannot use last full year with a compare to of prior quarter, month, or week.'
         {%- elsif _period_selection == 'mtd' and _compare_to_period == 'prior_week' %}
             'ERROR: Cannot use Month to Date with a Prior Week compare to selection'
         {%- elsif _period_selection == 'qtd' and (_compare_to_period == 'prior_week' or _compare_to_period == 'prior_month') %}
             'ERROR: Cannot use Quarter to Date with a Prior Week or Prior Month compare to selection'
         {%- elsif _period_selection == 'ytd' and (_compare_to_period == 'prior_week' or _compare_to_period == 'prior_month' or _compare_to_period == 'prior_quarter') %}
             'ERROR: Cannot use Year to Date can only be used with a Prior Year compare to selection'
+        {%- elsif snap_start_date_to._parameter_value != 'none' and compare_to_period._parameter_value != 'none' -%}
+            'ERROR: Invalid state, you cannot use snap feature with a compare period'
+        {%- else -%}
+            ''
         {%- endif -%};;
   }
 
@@ -619,7 +611,7 @@ view: main {
 
   dimension: period {
     view_label: "@{block_field_name}"
-    label: "Period Pivot Dev"
+    label: "Period"
     group_label: "Pivot Dimensions"
     type: string
     order_by_field: order_for_period
@@ -639,9 +631,9 @@ view: main {
     #    you want date_add('days', -6, end_date).
     #
     sql:
+    case when ${invalid_state_warning} <> '' then ${invalid_state_warning} else
         {%- assign _period_selection = period_selection._parameter_value -%}
         {%- assign _compare_to_period = compare_to_period._parameter_value -%}
-        {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
         {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
         {%- assign _range_start = _range_size | times: 1 -%}
         {%- assign _range_end = 0 -%}
@@ -649,16 +641,7 @@ view: main {
 
         {%- assign _period_count_values = "1st,2nd,3rd,4th,5th,6th,7th,8th,9th,10th,11th,12th,13th,14th,15th,16th,17th,18th,19th,20th,21st,22nd,23rd,24th,25th,26th,27th,28th,29th,30th,31st,32nd,33rd,34th,35th,36th,37th,38th,39th,40th,41st,42nd,43rd,44th,45th,46th,47th,48th,49th,50th,51st,52nd,53rd" | split: ',' %}
 
-        {%- if period_selection._parameter_value == "today" -%}
-            {%- assign _range_size = 1 -%}
-            {%- assign _range_start = _range_size -%}
-            {%- assign _range_end = 0 -%}
-        {%- elsif period_selection._parameter_value == "yesterday" -%}
-            {%- assign _range_size = 1 -%}
-            {%- assign _range_start = 2 -%}
-            {%- assign _range_end = 1 -%}
-            {%- assign _additional_days = 1 %}
-        {%- elsif period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
+        {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
             or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
             or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
             {%- assign _range_size = 0 -%}
@@ -666,129 +649,89 @@ view: main {
             {%- assign _range_end = 0 -%}
             {%- assign _additional_days = 0 %}
         {%- endif -%}
-         {%- comment -%}Check for invalid states{%- endcomment -%}
-        {%- if (_compare_to_period == 'prior_week' and _range_size > 7 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior week over 7 days. {{_range_size}} days selected.'
-        {%- elsif (_compare_to_period == 'prior_month' and _range_size > @{days_in_standard_month} and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior month over @{days_in_standard_month} days. {{_range_size}} days selected.'
-        {%- elsif (_compare_to_period == 'prior_quarter' and _range_size > @{days_in_standard_quarter} and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior quarter over @{days_in_standard_quarter} days. {{_range_size}} days selected.'
-        {%- elsif (_compare_to_period == 'prior_year' and _range_size > 365 and _period_selection == 'trailing') %}
-            'WARNING: Cannot compare prior year over 365 days. {{_range_size}} days selected.'
-        {%- elsif (_period_selection == 'wtd' or _period_selection == 'mtd' or _period_selection == 'qtd' or _period_selection == 'ytd'
-           or _period_selection == 'lw' or _period_selection == 'lm'  or _period_selection == 'lq' or _period_selection == 'ly')
-           and _compare_to_period == 'prior_period' %}
-            'ERROR: Cannot use {{_period_selection}} with a Prior Period compare to selection'
-        {%- elsif _period_selection == 'mtd' and _compare_to_period == 'prior_week' %}
-            'ERROR: Cannot use Month to Date with a Prior Week compare to selection'
-        {%- elsif _period_selection == 'qtd' and (_compare_to_period == 'prior_week' or _compare_to_period == 'prior_month') %}
-            'ERROR: Cannot use Quarter to Date with a Prior Week or Prior Month compare to selection'
-        {%- elsif _period_selection == 'ytd' and (_compare_to_period == 'prior_week' or _compare_to_period == 'prior_month' or _compare_to_period == 'prior_quarter') %}
-            'ERROR: Cannot use Year to Date can only be used with a Prior Year compare to selection'
-        {%- else -%}
-          {%- assign _period_count = period_count._parameter_value | times: 1 -%}
-          case
-          {% for i in (1.._period_count) -%}
-            {%- assign _zero_index = i | minus: 1 -%}
-            {%- assign _period_prefix = _period_count_values[_zero_index] -%}
-            {%- assign _period_suffix = 'Period' -%}
-            {%- assign _period_name = "'" | append: _period_prefix | append: " " | append: _period_suffix | append: "'" -%}
-            {%- if i == 1 -%}
-              {%- if _compare_to_period == 'prior_month' and _normalize_range_size == 'true' %}
-                --- Test
-                when ${event_date_tz_convert} between date_add('days', -@{days_in_standard_month}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
+
+        {%- assign _period_count = period_count._parameter_value | times: 1 %}
+        case
+        {% for i in (1.._period_count) -%}
+          {%- assign _zero_index = i | minus: 1 -%}
+          {%- assign _period_prefix = _period_count_values[_zero_index] -%}
+          {%- assign _period_suffix = 'Period' -%}
+          {%- assign _period_name = "'" | append: _period_prefix | append: " " | append: _period_suffix | append: "'" -%}
+          {%- if i == 1 -%}
+               when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
+               {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
+                  || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                  {%- if _range_size > 1 -%}
+                    || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                  {%- endif -%}
+                  || ')'
+               {%- endif -%}
+          {%- endif -%}
+
+          {%- if i != 1 %}
+            {%- case _compare_to_period %}
+              {%- when 'prior_period' %}
+                  when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}) then {{ _period_name }}
                 {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                    || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}') || ')'
+                    || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- if _range_size != 1 -%}
+                      || ' to ' || to_char(date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- endif -%}
+                    || ')'
                 {%- endif -%}
 
-              {%- elsif _compare_to_period == 'prior_quarter' and _normalize_range_size == 'true' %}
-                 when ${event_date_tz_convert} between date_add('days', -@{days_in_standard_quarter}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
+              {%- when 'prior_week' %}
+                  when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{ _period_name }}
                 {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                    || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}') || ')'
+                    || ' (' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- if _range_size != 1 -%}
+                      || ' to ' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- endif -%}
+                    || ')'
                 {%- endif -%}
 
-              {%- elsif _compare_to_period == 'prior_year' and _normalize_range_size == 'true' %}
-                 when ${event_date_tz_convert} between date_add('days', -365, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
-                {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                    || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}') || ')'
-                {%- endif -%}
-
-              {%- else %}
-                 when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
-                 {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                    || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}') || ')'
-                 {%- endif -%}
-              {%- endif -%}
-            {%- endif -%}
-
-            {%- if i != 1 %}
-              {%- case _compare_to_period %}
-                {%- when 'prior_period' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}) then {{ _period_name }}
+              {%- when 'prior_month' %}
+                  when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}), '@{date_display_format}') || ')'
+                    || ' (' || to_char(date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- if _range_size != 1 -%}
+                      || ' to ' || to_char(date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- endif -%}
+                    || ')'
                   {%- endif -%}
 
-                {%- when 'prior_week' %}
-                    when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{ _period_name }}
+              {%- when 'prior_quarter' %}
+                  when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}') || ' to ' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})), '@{date_display_format}') || ')'
+                    || ' (' || to_char(date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- if _range_size != 1 -%}
+                      || ' to ' || to_char(date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- endif -%}
+                    || ')'
                   {%- endif -%}
 
-                {%- when 'prior_month' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
-                    {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})), '@{date_display_format}') || ')'
+              {%- when 'prior_year' %}
+                  when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
+                  {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
+                    || ' (' || to_char(date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
+                    {%- if _range_size != 1 -%}
+                      || ' to ' || to_char(date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                     {%- endif -%}
-
-                  {%- elsif _normalize_range_size != 'true' %}
-                    when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
-                    {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}') || ' to ' || to_char(date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}') || ')'
-                    {%- endif -%}
-
+                    || ')'
                   {%- endif -%}
 
-                {%- when 'prior_quarter' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
-                    {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}') || ')'
-                    {%- endif -%}
+            {%- endcase -%}
+          {%- endif -%}
+          {%- if _compare_to_period == 'prior_period' -%}
+            {%- assign _i_plus_one = i | plus: 1 -%}
+            {%- assign _range_end = _range_start | plus: 1  -%}
+            {%- assign _range_start = _range_size | times: _i_plus_one | plus: _additional_days | floor -%}
+          {%- endif -%}
+        {% endfor %}
+        end
+      end
 
-                  {%- elsif _normalize_range_size != 'true' %}
-                    when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
-                    {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}') || ' to ' || to_char(date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}') || ')'
-                    {%- endif -%}
-                  {%- endif -%}
 
-                {%- when 'prior_year' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
-                    {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}') || ' to ' || to_char(date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}') || ')'
-                    {%- endif -%}
-
-                  {%- elsif _normalize_range_size != 'true' %}
-                    when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then '{{ _period_prefix | append: " " | append: _period_suffix }}'
-                    {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
-                      || ' (' || to_char(date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}') || ' to ' || to_char(date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}') || ')'
-                    {%- endif -%}
-
-                  {%- endif -%}
-
-              {%- endcase -%}
-            {%- endif -%}
-            {%- if _compare_to_period == 'prior_period' -%}
-              {%- assign _i_plus_one = i | plus: 1 -%}
-              {%- assign _range_end = _range_start | plus: 1  -%}
-              {%- assign _range_start = _range_size | times: _i_plus_one | plus: _additional_days | floor -%}
-            {%- endif -%}
-          {% endfor %}
-          end
-      {%- endif -%}
       ;;
   }
 
@@ -805,22 +748,12 @@ view: main {
     sql:
         {%- assign _period_selection = period_selection._parameter_value -%}
         {%- assign _compare_to_period = compare_to_period._parameter_value -%}
-        {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
         {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
         {%- assign _range_start = _range_size | times: 1 -%}
         {%- assign _range_end = 0 -%}
         {%- assign _additional_days = 0 -%}
 
-        {%- if _period_selection == "today" -%}
-            {%- assign _range_size = 1 -%}
-            {%- assign _range_start = _range_size -%}
-            {%- assign _range_end = 0 -%}
-        {%- elsif _period_selection == "yesterday" -%}
-            {%- assign _range_size = 1 -%}
-            {%- assign _range_start = 2 -%}
-            {%- assign _range_end = 1 -%}
-            {%- assign _additional_days = 1 %}
-        {%- elsif period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
+        {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
             or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
             or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
             {%- assign _range_size = 0 -%}
@@ -844,28 +777,13 @@ view: main {
                     when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
 
                 {%- when 'prior_month' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-                  {%- endif -%}
 
                 {%- when 'prior_quarter' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-                  {%- endif -%}
 
                 {%- when 'prior_year' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then {{i}}
-                  {%- endif -%}
 
               {%- endcase -%}
             {%- endif -%}
@@ -885,11 +803,8 @@ view: main {
     sql:
         {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
         {%- assign _range_start = _range_size | times: 1 -%}
-        {%- if period_selection._parameter_value == "today" -%}
-            {%- assign _range_start = _range_size -%}
-        {%- elsif period_selection._parameter_value == "yesterday" -%}
-            {%- assign _range_start = 2 -%}
-        {%- elsif period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
+
+        {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
             or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
             or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
             {%- assign _range_start = 0 -%}
@@ -917,14 +832,11 @@ view: main {
     convert_tz: no
     # timeframes: [date, quarter, year, month, week, day_of_week,fiscal_month_num, fiscal_quarter, quarter_of_year]
     sql:
-      {%- if snap_start_date_to._parameter_value != 'none' and compare_to_period._parameter_value != 'none' -%}
-         -- WARNING: Invalid state, you cannot use snap feature with a compare period
-         '1900-01-01'::timestamp
-      {%- elsif period_count._parameter_value != 1 -%}
+      {%- if period_count._parameter_value != 1 %}
         dateadd('seconds', ${seconds_from_start_to_date}, ${first_period_start_date})
       {%- else -%}
         ${event_date_tz_convert}
-      {%- endif -%};;
+      {%- endif %};;
   }
 
   dimension: seconds_from_start_to_date {
@@ -942,20 +854,9 @@ view: main {
           {%- assign _range_start = _range_size | times: 1 -%}
           {%- assign _range_end = 0 -%}
           {%- assign _period_selection = period_selection._parameter_value -%}
-          {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
           {%- assign _period_count = period_count._parameter_value | times: 1 -%}
           {%- assign _additional_days = 0 -%}
-          {%- if _period_selection == "today" -%}
-              {%- assign _range_size = 1 -%}
-              {%- assign _range_start = _range_size -%}
-              {%- assign _range_end = 0 -%}
-              {%- assign _end_period_value = 0 -%}
-          {%- elsif _period_selection == "yesterday" -%}
-              {%- assign _range_size = 1 -%}
-              {%- assign _range_start = 2 -%}
-              {%- assign _range_end = 1 -%}
-              {%- assign _additional_days = 1 %}
-          {%- elsif period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
+          {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
               or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
               or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
               {%- assign _range_size = 0 -%}
@@ -977,28 +878,13 @@ view: main {
                     when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
 
                 {%- when 'prior_month' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
-                  {%- endif -%}
 
                 {%- when 'prior_quarter' %}
-                  {%- if _normalize_range_size == 'true' -%}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
-                  {%- endif -%}
 
                 {%- when 'prior_year' %}
-                  {%- if _normalize_range_size == 'true' -%}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), ${event_date_tz_convert})
-                  {%- endif -%}
               {%- endcase -%}
             {%- endif -%}
             {%- if _compare_to_period == 'prior_period' -%}
@@ -1022,20 +908,9 @@ view: main {
           {%- assign _range_start = _range_size | times: 1 -%}
           {%- assign _range_end = 0 -%}
           {%- assign _period_selection = period_selection._parameter_value -%}
-          {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
           {%- assign _period_count = period_count._parameter_value | times: 1 -%}
           {%- assign _additional_days = 0 -%}
-          {%- if _period_selection == "today" -%}
-              {%- assign _range_size = 1 -%}
-              {%- assign _range_start = _range_size -%}
-              {%- assign _range_end = 0 -%}
-              {%- assign _end_period_value = 0 -%}
-          {%- elsif _period_selection == "yesterday" -%}
-              {%- assign _range_size = 1 -%}
-              {%- assign _range_start = 2 -%}
-              {%- assign _range_end = 1 -%}
-              {%- assign _additional_days = 1 %}
-          {%- elsif period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
+          {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
               or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
               or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
               {%- assign _range_size = 0 -%}
@@ -1057,28 +932,14 @@ view: main {
                     when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
 
                 {%- when 'prior_month' %}
-                {%- if _normalize_range_size == 'true' %}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
-
-                {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
-                {%- endif -%}
 
                 {%- when 'prior_quarter' %}
-                {%- if _normalize_range_size == 'true' -%}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
-
-                {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})),  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
-                {%- endif -%}
 
                 {%- when 'prior_year' %}
-                {%- if _normalize_range_size == 'true' -%}
-                    when ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
-
-                {%- elsif _normalize_range_size != 'true' %}
                     when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then datediff('seconds', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
-                {%- endif -%}
+
               {%- endcase -%}
             {%- endif -%}
             {%- if _compare_to_period == 'prior_period' -%}
@@ -1109,6 +970,44 @@ view: main {
     sql: round(${seconds_in_period}::decimal/86400, 4);;
   }
 
+  # measure: min_start_date {
+  #   label: "Start Date"
+  #   type: min
+  #   sql: ${start_date} ;;
+  # }
+
+  parameter: show_time_in_date_display {
+    type: yesno
+    default_value: "no"
+    description: "Display the time in the first period date range display"
+    view_label: "@{block_field_name}"
+    group_label: "Display Blocks"
+  }
+
+  dimension: date_range_display_period_1 {
+    label: "First Period Date Range"
+    description: "This will display the date range for the first period."
+    view_label: "@{block_field_name}"
+    group_label: "Display Blocks"
+    type: string
+    sql:
+    case when  ${invalid_state_warning} <> '' then ${invalid_state_warning}
+    else
+    {%- if show_time_in_date_display._parameter_value == 'false' %}
+    to_char(${start_date_dim}, '@{date_display_format}') || ' to ' || to_char(${end_date_dim}, '@{date_display_format}')
+    {%- else %}
+    to_char(${start_date_dim}, '@{date_display_format} @{time_display_format}') || ' to ' || to_char(${end_date_dim}, '@{date_display_format} @{time_display_format}')
+    {%- endif %}
+    end
+    ;;
+    html:
+    {% if rendered_value contains 'ERROR' %}
+      <div style='white-space: pre-wrap; background-color: red; color: white; font-size: 2vw; border: 3px solid rgb(117, 15, 8);'>{{rendered_value}}</div>
+    {% else %}
+      <span style='white-space: pre-wrap;'>{{rendered_value}}</span>
+    {% endif %};;
+  }
+
   dimension: sql_always_where_inject {
     hidden: yes
     sql:
@@ -1118,20 +1017,9 @@ view: main {
           {%- assign _range_size = size_of_range._parameter_value | times: 1 -%}
           {%- assign _range_start = _range_size | times: 1 -%}
           {%- assign _range_end = 0 -%}
-          {%- assign _normalize_range_size = normalize_range_size._parameter_value -%}
           {%- assign _period_count = period_count._parameter_value | times: 1 -%}
           {%- assign _additional_days = 0 -%}
-          {%- if _period_selection == "today" -%}
-              {%- assign _range_size = 1 -%}
-              {%- assign _range_start = _range_size -%}
-              {%- assign _range_end = 0 -%}
-              {%- assign _end_period_value = 0 -%}
-          {%- elsif _period_selection == "yesterday" -%}
-              {%- assign _range_size = 1 -%}
-              {%- assign _range_start = 2 -%}
-              {%- assign _range_end = 1 -%}
-              {%- assign _additional_days = 1 %}
-          {%- elsif period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
+          {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
             or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
             or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
               {%- assign _range_size = 0 -%}
@@ -1141,14 +1029,16 @@ view: main {
           {%- endif -%}
           {% if debug._parameter_value == 'true' %}
             -- *****************************************
-            -- As of Value: {% parameter as_of_date %}
-            -- Exclude Value: {% parameter exclude_days %}
-            -- Snap Start Date: {% parameter snap_start_date_to %}
+            -- As of Value:       {% parameter as_of_date %}
+            -- Period Selection:  {{_period_selection}}
+            -- Exclude Value:     {% parameter exclude_days %}
+            -- Snap Start Date:   {% parameter snap_start_date_to %}
             -- Compare to Period: {% parameter compare_to_period %}
-            -- Range Size:       {{_range_size}}
-            -- Additional Days:  {{ _additional_days }}
-            -- Range Start:      {{ _range_start }}
-            -- Range End:        {{ _range_end }}
+            -- Range Size:        {{_range_size}}
+            -- Additional Days:   {{ _additional_days }}
+            -- Range Start:       {{ _range_start }}
+            -- Range End:         {{ _range_end }}
+            -- Convert TZ:        {% parameter convert_tz %}
             -- *****************************************
           {% endif %}
           {%- for i in (1.._period_count) %}
@@ -1171,28 +1061,13 @@ view: main {
                   or ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
 
                 {%- when 'prior_month' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    or ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_month}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     or ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-                  {%- endif -%}
 
                 {%- when 'prior_quarter' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    or ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 }} * @{days_in_standard_quarter}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     or ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-                  {%- endif -%}
 
                 {%- when 'prior_year' %}
-                  {%- if _normalize_range_size == 'true' %}
-                    or ${event_date_tz_convert} between date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- i | minus: 1 | times: 365}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-
-                  {%- elsif _normalize_range_size != 'true' %}
                     or ${event_date_tz_convert} between date_add('year', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('year', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
-                  {%- endif -%}
               {%- endcase -%}
             {%- endif -%}
             {%- if _compare_to_period == 'prior_period' -%}
@@ -1201,6 +1076,8 @@ view: main {
               {%- assign _range_start = _range_size | times: _i_plus_one | plus: _additional_days | floor -%}
             {%- endif -%}
           {% endfor %}
+          -- Required for error warnings
+          or ${invalid_state_warning} <> ''
       {%- else -%}
         -- Period Control Block is not enabled for this query.
         1 = 1

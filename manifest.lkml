@@ -11,16 +11,25 @@ constant: date_display_format {
   export: override_optional
 }
 
+constant: time_display_format {
+  value: "HH:MI"
+  export: override_optional
+}
+
 constant: days_in_standard_month {
-  # Set the number of days in a month. This is used when "Normalize Range Size" is turned off and prior month is selected. This has the effect of
-  # calculating the prior month as date_add('days', -@{days_in_standard_month}, the_date_value).
+  # Set the number of days in a month. This is used for error checking, and may be used in a future version for a "normalize range size" function.
   value: "30"
   export: override_optional
 }
 
 constant: days_in_standard_quarter {
-  # Set the number of days in a quarter. This is used when "Normalize Range Size" is turned off and prior quarter is selected. This has the effect of
-  # calculating the prior quarter as date_add('days', -@{days_in_standard_quarter}, the_date_value).
+  # Set the number of days in a quarter. This is used for error checking, and may be used in a future version for a "normalize range size" function.
   value: "91"
+  export: override_optional
+}
+
+constant: database_time_zone {
+  # Set this to the value of the timezone in your database.
+  value: "UTC"
   export: override_optional
 }
