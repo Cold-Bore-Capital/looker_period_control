@@ -194,6 +194,17 @@ Copy and paste the following template into the file, updating the fields as spec
 
 ## Usage
 
+### Basic Usage
+Note that on a dashboard, tiles can be used in both modes. You would just set the PoP filters to only affect tiles where a PoP is desired. The `Period Selection` filter can then be used to control the period for both the PoP and non-PoP tiles.
+
+#### Period Selection Mode (No Period over Period)
+For period selection mode, you will need to add the `Period Selection` filter, along with the `Number of Trailing Days` filter. It may be a good idea to include the `Snap Start Date to` filter as well if you want to ensure that your range contains a full week, month, quarter, or year. You should not have a `Compare to` filter in this mode.
+
+Add a value from the `X Axis Dimensions` group to your X-Axis, add a measure, and run.
+
+#### Period over Period (PoP) Mode
+The minimum setup for a PoP tile includes the `Period Selection`, `Number of Trailing Days`, `Compare to`, and `Number of Periods` filters. You will need to pivot on the `Pivot Dimensions/Period` dimension, add a value from the `X Axis Dimensions` group to your X-Axis, add a measure, and run.
+
 ### Filters
 
 #### Tile Only Filters
@@ -219,4 +230,62 @@ Debug mode will place a block of SQL comment code into the rendered SQL with inf
 ```
 
 ##### Display Dates in Period Labels 
-This filter turns on date display in your axis labels. 
+This filter turns on date display in your axis labels. You can control if time is displayed using the `Show Time in Date Display` filter.
+
+Example with time displayed
+
+![Date display with time shown](docs/display_date_in_period_labels__with_time.jpg) 
+
+Example without time displayed
+
+![Date display with time shown](docs/display_date_in_period_labels__without_time.jpg) 
+
+##### Number of Periods
+This value sets the number of periods that will display when pivoted on the `Pivot Dimensions/Period` dimension. You can select up to 53 periods, however performance issues may occur with higher period selections.
+
+##### Snap Start Date To (Non PoP Tiles Only)
+The `Snap Start Date To` filter solves a problem with display of partial ranges when the X-Axis is set to a week, month, quarter, or year. For example, if you have a chart that displays revenue by week, the user will expect that the first week in the chart is a full week. If the period selection is trailing 90 days, it is very likely that the first column will only contain partial data. The `Snap Start Date to` filter will ensure that the first week, month, quarter, or year in the chart is a full week of data.  
+
+Very bad things will happen if you try to use this filter with a PoP tile. Do not do it.
+
+#### Tile or Dashboard Filters
+Filters in this section can be added directly to Tiles or Looks, and to Dashboards. Note that a filter in a dashboard will always override a filter in a tile. 
+
+##### As Of Date
+The `As Of Date` filter allows you to select a specific date to use as the end of the period. This is useful if you want to compare a specific date to a prior period. For example, if you wanted to compare a week at the end of last month, you could set your `As Of Date` to the last day of the month. The tiles or dashboard will now behave as if today is whatever date you selected.
+
+##### Compare To 
+The `Compare To` filter allows you to select a period to compare the current period to. For example, if you have a tile that displays revenue by week, you can select `Prior Week` to compare the current week to last week. Options exist for trailing, prior week, month, quarter, or year.
+
+##### Exclude Days
+Exclude days allows you to start your data from a specific point. Option are:
+* Today. This will exclude the current day. 
+* Yesterday. This will exclude the current day and yesterday.
+* End of Last Full Week, Month, Quarter, or Year
+* Last Data. Last data will run a `select max(date_field) from table` query to determine the last date in the table. This can be very useful if your data loads intermittently. Make sure your `origin_event_date` and `origin_table_name` dimensions are set correctly during configuration. 
+
+##### Number of Trailing Days
+The `Number of Trailing Days` filter allows you to select the number of days to display in your chart. Options are pre-set to common intervals. This will only be used when `Period Selection` is set to `Trailing`.
+
+##### Period Selection
+The `Period Selection` filter allows you to select the period to display or trailing to display a trailing period.
+
+#### Display Block Dimensions 
+These dimensions are intended to be used in a "Single Value" type tile. They are designed to display information to the user about the current filter state or errors on a dashboard.
+
+##### Display Block
+With Looker, there is no way to prevent users from selecting invalid parameter / filter states. For example, if you selected `Month to Date` for your `Period Selection`, and `Prior Week` for your `Compare To` filter, you will get incorrect results. This block can be added to a dashboard to display errors to the user. 
+
+Note, errors are integrated into the `First Period Date Range` dimension as well. There is no need to include both.
+
+##### First Period Date Range
+The `First Period Date Range` dimension is used to display the date range for the first period in the chart. This block can be added to dashboards to show the users what date range is being displayed. If an invalid filter selection combination is made, this dimension will display an error message explaining the problem. This dimension is best used in a "Single Value" type tile.
+
+#### Period Duration Dimensions
+The values in this section show the days, minutes, or seconds in a period. The main utility of these dimension is for run-rate calculations. For example, users want to know what the run rate for the year would be if the total from the current selected period was extrapolated for the entire year. You could create a table calculation like `${orders.revenue} * (365 / ${orders.period_1_len})`.
+
+#### Pivot Dimensions -> Period
+This dimension allows for the period over period comparison. Normally, you would pivot on this dimension, however it can be used on an X-Axis as well. This is required for any PoP tiles.
+
+#### X Axis Dimensions
+This should be the only date series used in a chart. While not strictly used on the X Axis, these dimensions will most commonly be added to your X-Axis to create your dates. It is best practice to either remove, or set any other `dimension_group` within your file to `hidden` so that users don't accidentally use the wrong time series. Use of another time series will not filter based on the `Period Selection` filter.
