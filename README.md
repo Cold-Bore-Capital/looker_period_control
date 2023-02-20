@@ -1,178 +1,291 @@
-# A Period Over Period Block for Looker
+# Looker Period Control Block
+This is a Looker block that allows you to control the period of time that is being displayed in a dashboard along with period comparison. This block is designed to replace all other forms of date control on a dashboard giving users the option to filter regular tiles, and tiles with period comparison requirements all in a single control. 
 
-## Features
-This block allows for a number of period over period type comparisons, both at the tile level, and for a full dashboard.
+Unlink many existing period over period blocks for Looker, the Looker Period Control block relies heavily on LookML. This shifts processing to Looker instead of the database, and allows the system to generate SQL that's easy to read and debug.
 
-### Comparison Options
-* Trailing period over period. Example: Last 7 days vs the prior 7 days before that. You must set the
-* Trailing 30, 90, 180, and 365 - A trailing period over period
-* Trailing 30, 90, 180 vs Last Year
-* Month to Date (MTD) vs prior month.
-* MTD vs prior quarter.
-* MTD vs prior year.
-* Quarter to Date (QTD) vs prior quarter.
-* QTD vs Prior Year.
-* Year to Date (YTD) vs prior year.
-* Last completed month vs the month before. For example, if we are in the middle of May, this would compare April to March.
-* Last completed quarter vs the quarter before.
-* Last completed year vs the year before.
-
-
-
-### Start Date Filter Options
-Start date filters can be used separately from the PoP block. This can be useful if your data isn't realtime.
-* **Exclude the current day.** Useful when data is pulled nightly, or you don't want to show an incomplete day.
-* **Exclude yesterday.** Moves the start date back two days.
-* **Exclude to last data.** This will automatically find the max date where data exists and start the comparison there.
-* **Exclude to end of prior week.** Only shows data through the end of the last fully completed week.
-* **Exclude to end of prior month.**
-* **Exclude to end of prior quarter.**
-* **Exclude to end of prior year.**
+## Key Features
+* Control the period of time for a dashboard or tile via a simple dropdown.
+* Allow for easy period selection including:
+    * Trailing days
+    * Period selection of trailing X days, and pre-set ranges like current week, last month, etc.
+    * Comparison to a trailing period, last full week, month, quarter, year, etc.
+* Allow for comparison of up to 53 periods in a single chart.
+* Easy integration and deployment.
+* Generates readable SQL for easy debugging.
+* Set an "As Of" date. This allows a user to pick a date other than today, while still selecting a value such as "trailing 90 days". 
+* Easily filter the end date of a tile to:
+  * Yesterday
+  * Two Days Ago
+  * End of Last Full Week, Month, Quarter, Year
 
 
-## Usage
+## Installation
+To use the Looker Period Control Block, you will need to add the external package to your manifest file, add a short bit of code to your model, then add several dimensions to your view along with an include.
 
 ### Manifest File
-To use the PoP block, you must first import the project. Adding the following code to your `manifest.ikml` file will import the current master branch.
-
-    remote_dependency: pop_block {
-        url: "https://github.com/Cold-Bore-Capital/looker_pop_block"
-        ref: "master"
-     }
-Given the development maturity of the project, using a git commit hash is likely a lot safer than using master. Breaking changes may cause problems in the master branch. Looker is supposed to allow the use of a tag in `ref`, but this feature appears broken. Tags for each release are still provided.
-
-#### Constants Override
-Currently, there is only one option set by constant during import, the name of the project. The project name changes how the project displays in the field list. Currently, this is set to `Z - PoP Block` so that it will sort at the bottom of the field list. You can change this by overriding the constant.
-
-    remote_dependency: pop_block {
-        url: "https://github.com/Cold-Bore-Capital/looker_pop_block"
-        ref: "master"
-        override_constant: block_field_name {
-            value: "New Name for Project in Field List"
-          }
-     }
+```yaml
+remote_dependency: looker_period_control {
+  url: "https://github.com/Cold-Bore-Capital/looker_period_control"
+  # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
+  ref: "a7a0b6807862e93ac3e75a1aaa10510b07ef156e" # Hash for tag V1.4.15
+}
+```
 
 
-### Model
-The PoP block uses the `sql_always_where` attribute of the explore to inject the necessary filters. The name of the view must be added to the top four variables.
 
-In this example, you would replace `pop_test_daily` with the name of your view.
 
-    explore: pop_test_daily {
+### Model Explore
+Adding the looker_period_control block to your explore only takes a single line of code. Simply add `sql_always_where: ${sql_always_where_inject};;` to the explore block. This will allow the Looker Period Control block to inject the correct date filter into the explore.
 
-      sql_always_where:
-      {% assign comp_val_set = pop_test_daily.compare_to._parameter_value %}
-      {% assign user_comp_val_set = pop_test_daily.user_compare_to._parameter_value %}
-      {% assign period_count = pop_test_daily.comparison_periods._parameter_value %}
-      {% assign exclude_days_val = pop_test_daily.exclude_days._parameter_value %}
-      {% if comp_val_set != "none" or user_comp_val_set != "none" %}
-        {% case period_count %}
-          {% when 'none' %}
-            (${event_date} between ${period_1_start} and ${period_1_end})
-          {% when '2' %}
-            ((${event_date} between ${period_1_start} and ${period_1_end})
-            or (${event_date} between ${period_2_start} and ${period_2_end}))
-          {% when '3' %}
-            ((${event_date} between ${period_1_start} and ${period_1_end})
-            or (${event_date} between ${period_2_start} and ${period_2_end})
-            or (${event_date} between ${period_3_start} and ${period_3_end}))
-          {% when '4' %}
-            ((${event_date} between ${period_1_start} and ${period_1_end})
-            or (${event_date} between ${period_2_start} and ${period_2_end})
-            or (${event_date} between ${period_3_start} and ${period_3_end})
-            or (${event_date} between ${period_4_start} and ${period_4_end}))
-        {% endcase %}
-      {% else %}
-        -- PoP Block is not in use. Default to 1=1 to avoid errors.
-        1 = 1
-      {% endif %}
-      ;;
-    }
+```yaml
+explore:  orders {
+  sql_always_where: ${sql_always_where_inject};;
+}
+```
 
 ### View
+At the top of the view file, place the following code to include the block. 
 
-Within the view the project must be imported.
+```yaml
+include: "//looker_period_control/main.view"
+```
 
-    include: "//pop_block/pop_block.view"
+Copy and paste the following template into the file, updating the fields as specified. Note, it is best practice to set `hidden: yes` on any date fields within the view, or simply don't include the `dimension_group` for dates in the file. This will help prevent your users from accidentally filtering on, or selecting the wrong date dimension in a tile. 
 
-Several special fields must be set within the view. This is example is from a PDT. While the PoP block can be used with any view, it was specifically designed with PDTs in mind as they are a far better way to do business.
+#### View Block Template
+```yaml
+#----------- Looker Period Control Block -----------
+  extends: [main]
 
-    #----------- START POP BLOCK -----------
-    extends: [pop_block]
 
-    # The event date must be set to whatever main time series dimension_group is in use by the view.
-    # It's very important to set convert_tz to no if you have only a date with no time value.
-    dimension: event_date {
-      sql: ${TABLE}.completed_date ;;
-      type: date
-      hidden: yes
-      # Turn this to no if your table is pulling just a date. Yes if table is pulling a datetime type.
-      convert_tz: no
-    }
+  dimension: event_date {
+    sql: ${TABLE}.<replace_with_date_field>;;
+    # Important. If this field only contains a date, with no time, this must be set to no. You will have major problems
+    # if a date such as 2022-01-01 is converted to local time. Looker will think of this as 2022-01-01 00:00:00 and in the case
+    # of a -5 conversion, would turn that into 2021-12-31 19:00:00.
+    convert_tz: no
+    
+    # --- Do Not Edit Below this Line ----
+    type: date_raw
+    hidden: yes
+    # --- End No Not Edit block       ----
 
-    # This field can be set to simply ${TABLE}. The table_name field is used
-    dimension: table_name {
-      type: string
-      sql: ${TABLE} ;;
-      hidden: yes
-    }
+  }
 
-    # This field is needed for the "last data" filter to function properly from within a PDT. The "last data" filter option
-    # uses this sql call to find the date with the last data `select max(${origin_event_date}) from ${origin_table_name}`
-    dimension: origin_event_date {
-      sql: completed_date ;;
-      type: string
-      hidden: no
-    }
+  parameter: convert_tz {
+    # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
+    # not set this value to yes if you only have a date. Bad things will happen.
+    default_value: "yes"
 
-    # This field is also required for last data from within a PDT. The PDT is unaware of the main table name to search
-    # for last data, so this field must be used.
-    dimension: origin_table_name {
-      type: string
-      sql: ps.transactions;;
-      hidden: no
-    }
-    #------------ END POP BLOCK ------------
+    # --- Do Not Edit Below this Line ----
+    type: yesno
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+  
+  # Do not edit table_name. This should stay as is.
+  dimension: table_name {
+    # --- Do Not Edit Below this Line ----
+    type: string
+    sql: ${TABLE} ;;
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+
+  # Origin event date and origin period name are required when using the "Last Data" filter option. The value here will be
+  # used to create a (select max(date_field) from table) type query. This will be used to limit the date range to the max date.
+  # When using a derived table, the query has no way to know what table name to query for last data. If using a derived table,
+  # these values should be set to whatever source table contains the "max" date. 
+  
+  dimension: origin_event_date {
+    # Instructions: Replace with the name of the origin date column
+    sql: <replace_with_date_field> ;;
+    # --- Do Not Edit Below this Line ----
+    type: string
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+  
+  dimension: origin_table_name {
+    # Instructions: The origin_table_name dimension allows for the use of "Last Data" filter option. If you are 
+    # using a PDT, you must hand enter the schema and table name of whatever table contains the date dimension. 
+    # For example, if you had a PDT that mostly derived from shop.orders, you would enter that. If using a 
+    # standard SQL table, you can enter the name of the view and SQL_TABLE_NAME. For example ${my_view.
+    # SQL_TABLE_NAME}.
+    sql: ${<replace_with_view_name>.SQL_TABLE_NAME} OR <replace with origin schema and table>;;
+    # --- Do Not Edit Below this Line ----
+    type: string
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+
+  #------------ End Looker Period Control Block ------------
+  ```
+
+#### View Block Example 
+```yaml
+#----------- Looker Period Control Block -----------
+  extends: [main]
+
+
+  dimension: event_date {
+    sql: ${TABLE}.order_date;;
+    # Important. If this field only contains a date, with no time, this must be set to no. You will have major problems
+    # if a date such as 2022-01-01 is converted to local time. Looker will think of this as 2022-01-01 00:00:00 and in the case
+    # of a -5 conversion, would turn that into 2021-12-31 19:00:00.
+    convert_tz: no
+    
+    # --- Do Not Edit Below this Line ----
+    type: date_raw
+    hidden: yes
+    # --- End No Not Edit block       ----
+
+  }
+
+  parameter: convert_tz {
+    # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
+    # not set this value to yes if you only have a date. Bad things will happen.
+    default_value: "yes"
+
+    # --- Do Not Edit Below this Line ----
+    type: yesno
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+  
+  # Do not edit table_name. This should stay as is.
+  dimension: table_name {
+    # --- Do Not Edit Below this Line ----
+    type: string
+    sql: ${TABLE} ;;
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+
+  # Origin event date and origin period name are required when using the "Last Data" filter option. The value here will be
+  # used to create a (select max(date_field) from table) type query. This will be used to limit the date range to the max date.
+  # When using a derived table, the query has no way to know what table name to query for last data. If using a derived table,
+  # these values should be set to whatever source table contains the "max" date. 
+  
+  dimension: origin_event_date {
+    # Instructions: Replace with the name of the origin date column
+    sql: order_date ;;
+    # --- Do Not Edit Below this Line ----
+    type: string
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+  
+  dimension: origin_table_name {
+    # Instructions: The origin_table_name dimension allows for the use of "Last Data" filter option. If you are 
+    # using a PDT, you must hand enter the schema and table name of whatever table contains the date dimension. 
+    # For example, if you had a PDT that mostly derived from shop.orders, you would enter that. If using a 
+    # standard SQL table, you can enter the name of the view and SQL_TABLE_NAME. For example ${my_view.
+    # SQL_TABLE_NAME}.
+    sql: ${my_view.SQL_TABLE_NAME};;
+    # --- Do Not Edit Below this Line ----
+    type: string
+    hidden: yes
+    # --- End No Not Edit block       ----
+  }
+
+  #------------ End Looker Period Control Block ------------
+  ```
 
 ## Usage
 
-Important note, when using the PoP block, it's important to use the time series from within the PoP block instead of the native time series from the view.
+### Basic Usage
+Note that on a dashboard, tiles can be used in both modes. You would just set the PoP filters to only affect tiles where a PoP is desired. The `Period Selection` filter can then be used to control the period for both the PoP and non-PoP tiles.
 
-Once joined in the view, the PoP block will add a section named *to the fields list of any tile or explore.
+#### Period Selection Mode (No Period over Period)
+For period selection mode, you will need to add the `Period Selection` filter, along with the `Number of Trailing Days` filter. It may be a good idea to include the `Snap Start Date to` filter as well if you want to ensure that your range contains a full week, month, quarter, or year. You should not have a `Compare to` filter in this mode.
 
-![PoP Block Name Example](docs/period_over_period_block_name_example.png)
+Add a value from the `X Axis Dimensions` group to your X-Axis, add a measure, and run.
 
-### Usage in Tile or Explore
+#### Period over Period (PoP) Mode
+The minimum setup for a PoP tile includes the `Period Selection`, `Number of Trailing Days`, `Compare to`, and `Number of Periods` filters. You will need to pivot on the `Pivot Dimensions/Period` dimension, add a value from the `X Axis Dimensions` group to your X-Axis, add a measure, and run.
 
-#### Step 1: Set Filters
-To use the PoP block in a tile or explore, add all four filters under the `Filters - Tile or Explore` section. At a minimum you need to set an option for the `Period Selection`, and `Number of Periods` filters.
+### Filters
 
-![Tile or Explore Filter Examples](docs/tile_or_explore_filters.png)
+#### Tile Only Filters
+Tile only filters are designed to be used within a single tile, not on a dashboard. 
 
-#### Step 2: Set Period Pivot or Use Period as X-Axis
+##### Debug Mode (Yes / No)
 
-You can either pivot on the `Period Pivot` field, or add it as an X Axis for use is something like a single value tile with "Compare to" feature turned on.
+Debug mode will place a block of SQL comment code into the rendered SQL with information about the current filter state. It should not be necassary unless you are activly developing for the period control block. The block will look like this
 
-In this example the `Period Pivot` field is used as a pivot.
-![Pivot Example](docs/pivot_example.png)
+```sql
+-- *****************************************
+-- As of Value:       NULL
+-- Period Selection:  trailing
+-- Exclude Value:     999
+-- Snap Start Date:   none
+-- Compare to Period: prior_month
+-- Range Size:        2
+-- Additional Days:   0
+-- Range Start:       2
+-- Range End:         0
+-- Convert TZ:        true
+-- *****************************************
+```
 
-To create single value cards with change, use the pivot option.
-![Single Value Card Example of Pivot](docs/single_value_card_example.png)
+##### Display Dates in Period Labels 
+This filter turns on date display in your axis labels. You can control if time is displayed using the `Show Time in Date Display` filter.
 
-In this example, the field is used as an X Axis dimension.
-![Used as an x axis dimension instead example](docs/pivot_used_as_x_axis_example.png)
+Example with time displayed
 
-#### Step 3: Set X-Axis (if not selected in step 2)
+![Date display with time shown](docs/display_date_in_period_labels__with_time.jpg) 
 
-There are two options for the X Axis:
+Example without time displayed
 
-1. Select one of the time range values from `Date in Period` such as `Date in Period Date` to display some grouping level of dates.
-2. Select `Day in Period` for a relative 1, 2, 3, 4 style X Axis.
+![Date display with time shown](docs/display_date_in_period_labels__without_time.jpg) 
 
-### Usage in Dashboards
-The PoP block can be used to filter an entire dashboard. Filters added at the dashboard level take priority over filters set at the tile level. If no filter is set at the dashboard level for an option, the filters set in the tile will take precedence.
+##### Number of Periods
+This value sets the number of periods that will display when pivoted on the `Pivot Dimensions/Period` dimension. You can select up to 53 periods, however performance issues may occur with higher period selections.
 
-#### Filtering Non-PoP Tiles.
-In addition to setting period over period options on a dashboard level, it will also filter any non PoP charts to the limit of Period 1's range.
+##### Snap Start Date To (Non PoP Tiles Only)
+The `Snap Start Date To` filter solves a problem with display of partial ranges when the X-Axis is set to a week, month, quarter, or year. For example, if you have a chart that displays revenue by week, the user will expect that the first week in the chart is a full week. If the period selection is trailing 90 days, it is very likely that the first column will only contain partial data. The `Snap Start Date to` filter will ensure that the first week, month, quarter, or year in the chart is a full week of data.  
 
-The `Exclude Days` filter will also function on non-PoP charts and can be used independently of any other option or filter.
+Very bad things will happen if you try to use this filter with a PoP tile. Do not do it.
+
+#### Tile or Dashboard Filters
+Filters in this section can be added directly to Tiles or Looks, and to Dashboards. Note that a filter in a dashboard will always override a filter in a tile. 
+
+##### As Of Date
+The `As Of Date` filter allows you to select a specific date to use as the end of the period. This is useful if you want to compare a specific date to a prior period. For example, if you wanted to compare a week at the end of last month, you could set your `As Of Date` to the last day of the month. The tiles or dashboard will now behave as if today is whatever date you selected.
+
+##### Compare To 
+The `Compare To` filter allows you to select a period to compare the current period to. For example, if you have a tile that displays revenue by week, you can select `Prior Week` to compare the current week to last week. Options exist for trailing, prior week, month, quarter, or year.
+
+##### Exclude Days
+Exclude days allows you to start your data from a specific point. Option are:
+* Today. This will exclude the current day. 
+* Yesterday. This will exclude the current day and yesterday.
+* End of Last Full Week, Month, Quarter, or Year
+* Last Data. Last data will run a `select max(date_field) from table` query to determine the last date in the table. This can be very useful if your data loads intermittently. Make sure your `origin_event_date` and `origin_table_name` dimensions are set correctly during configuration. 
+
+##### Number of Trailing Days
+The `Number of Trailing Days` filter allows you to select the number of days to display in your chart. Options are pre-set to common intervals. This will only be used when `Period Selection` is set to `Trailing`.
+
+##### Period Selection
+The `Period Selection` filter allows you to select the period to display or trailing to display a trailing period.
+
+#### Display Block Dimensions 
+These dimensions are intended to be used in a "Single Value" type tile. They are designed to display information to the user about the current filter state or errors on a dashboard.
+
+##### Display Block
+With Looker, there is no way to prevent users from selecting invalid parameter / filter states. For example, if you selected `Month to Date` for your `Period Selection`, and `Prior Week` for your `Compare To` filter, you will get incorrect results. This block can be added to a dashboard to display errors to the user. 
+
+Note, errors are integrated into the `First Period Date Range` dimension as well. There is no need to include both.
+
+##### First Period Date Range
+The `First Period Date Range` dimension is used to display the date range for the first period in the chart. This block can be added to dashboards to show the users what date range is being displayed. If an invalid filter selection combination is made, this dimension will display an error message explaining the problem. This dimension is best used in a "Single Value" type tile.
+
+#### Period Duration Dimensions
+The values in this section show the days, minutes, or seconds in a period. The main utility of these dimension is for run-rate calculations. For example, users want to know what the run rate for the year would be if the total from the current selected period was extrapolated for the entire year. You could create a table calculation like `${orders.revenue} * (365 / ${orders.period_1_len})`.
+
+#### Pivot Dimensions -> Period
+This dimension allows for the period over period comparison. Normally, you would pivot on this dimension, however it can be used on an X-Axis as well. This is required for any PoP tiles.
+
+#### X Axis Dimensions
+This should be the only date series used in a chart. While not strictly used on the X Axis, these dimensions will most commonly be added to your X-Axis to create your dates. It is best practice to either remove, or set any other `dimension_group` within your file to `hidden` so that users don't accidentally use the wrong time series. Use of another time series will not filter based on the `Period Selection` filter.
