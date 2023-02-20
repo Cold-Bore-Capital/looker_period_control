@@ -984,7 +984,17 @@ view: main {
     group_label: "Display Blocks"
   }
 
-  dimension: date_range_display_period_1 {
+  measure: min_date_in_range {
+    type: min
+    sql: ${date_in_period_date} ;;
+  }
+
+  measure: max_date_in_range {
+    type: max
+    sql: ${date_in_period_date} ;;
+  }
+
+  measure: date_range_display_period_1 {
     label: "First Period Date Range"
     description: "This will display the date range for the first period."
     view_label: "@{block_field_name}"
@@ -994,9 +1004,9 @@ view: main {
     case when  ${invalid_state_warning} <> '' then ${invalid_state_warning}
     else
     {%- if show_time_in_date_display._parameter_value == 'false' %}
-    to_char(${start_date_dim}, '@{date_display_format}') || ' to ' || to_char(${end_date_dim}, '@{date_display_format}')
+    to_char(${min_date_in_range}, '@{date_display_format}') || ' to ' || to_char(${max_date_in_range}, '@{date_display_format}')
     {%- else %}
-    to_char(${start_date_dim}, '@{date_display_format} @{time_display_format}') || ' to ' || to_char(${end_date_dim}, '@{date_display_format} @{time_display_format}')
+    to_char(${min_date_in_range}, '@{date_display_format} @{time_display_format}') || ' to ' || to_char(${max_date_in_range}, '@{date_display_format} @{time_display_format}')
     {%- endif %}
     end
     ;;
