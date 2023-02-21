@@ -272,6 +272,7 @@ view: main {
   }
 
   parameter: display_dates_in_period_labels {
+    alias: [display_dates_in_trailing_periods]
     group_label: "Tile Only Filters"
     view_label: "@{block_field_name}"
     description: "Display the dates alongside the periods. For example 'Current Period - 2021-01-01 to 2021-04-01'. Note that this will cause any custom colors set for the series to break when the dates change (i.e. the next day)."
