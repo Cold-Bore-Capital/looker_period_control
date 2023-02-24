@@ -662,7 +662,7 @@ view: main {
                when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then {{ _period_name }}
                {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                   || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
-                  {%- if _range_size > 1 -%}
+                  {%- if _range_size != 1 -%}
                     || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                   {%- endif -%}
                   || ')'
