@@ -3,6 +3,9 @@ This is a Looker block that allows you to control the period of time that is bei
 
 Unlink many existing period over period blocks for Looker, the Looker Period Control block relies heavily on LookML. This shifts processing to Looker instead of the database, and allows the system to generate SQL that's easy to read and debug.
 
+## Demo Video
+[Demo Video](https://youtu.be/u5Dv320JH-s)
+
 ## Key Features
 * Control the period of time for a dashboard or tile via a simple dropdown.
 * Allow for easy period selection including:
@@ -21,6 +24,9 @@ Unlink many existing period over period blocks for Looker, the Looker Period Con
 
 ## Installation
 To use the Looker Period Control Block, you will need to add the external package to your manifest file, add a short bit of code to your model, then add several dimensions to your view along with an include.
+
+### Install Tutorial
+[Install Tutorial Video](https://www.youtube.com/watch?v=g5OFwroZ5r4)
 
 ### Manifest File
 ```yaml
@@ -75,7 +81,7 @@ Copy and paste the following template into the file, updating the fields as spec
   parameter: convert_tz {
     # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
     # not set this value to yes if you only have a date. Bad things will happen.
-    default_value: "yes"
+    default_value: "no"
 
     # --- Do Not Edit Below this Line ----
     type: yesno
@@ -87,7 +93,7 @@ Copy and paste the following template into the file, updating the fields as spec
   dimension: table_name {
     # --- Do Not Edit Below this Line ----
     type: string
-    sql: ${TABLE} ;;
+    sql: ${TABLE};;
     hidden: yes
     # --- End No Not Edit block       ----
   }
@@ -99,7 +105,7 @@ Copy and paste the following template into the file, updating the fields as spec
   
   dimension: origin_event_date {
     # Instructions: Replace with the name of the origin date column
-    sql: <replace_with_date_field> ;;
+    sql: <replace_with_date_field>;;
     # --- Do Not Edit Below this Line ----
     type: string
     hidden: yes
@@ -145,11 +151,11 @@ Copy and paste the following template into the file, updating the fields as spec
   parameter: convert_tz {
     # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
     # not set this value to yes if you only have a date. Bad things will happen.
-    default_value: "yes"
+    default_value: "no"
 
     # --- Do Not Edit Below this Line ----
     type: yesno
-    hidden: yes
+    hidden: no
     # --- End No Not Edit block       ----
   }
   
@@ -157,7 +163,7 @@ Copy and paste the following template into the file, updating the fields as spec
   dimension: table_name {
     # --- Do Not Edit Below this Line ----
     type: string
-    sql: ${TABLE} ;;
+    sql: ${TABLE};;
     hidden: yes
     # --- End No Not Edit block       ----
   }
@@ -169,7 +175,7 @@ Copy and paste the following template into the file, updating the fields as spec
   
   dimension: origin_event_date {
     # Instructions: Replace with the name of the origin date column
-    sql: order_date ;;
+    sql: order_date;;
     # --- Do Not Edit Below this Line ----
     type: string
     hidden: yes
