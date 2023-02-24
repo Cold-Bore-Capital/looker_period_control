@@ -29,11 +29,12 @@ To use the Looker Period Control Block, you will need to add the external packag
 [Install Tutorial Video](https://www.youtube.com/watch?v=g5OFwroZ5r4)
 
 ### Manifest File
+Find the lastest release here: [Looker Period Control Block Releases](https://github.com/Cold-Bore-Capital/looker_period_control/releases)
 ```yaml
 remote_dependency: looker_period_control {
   url: "https://github.com/Cold-Bore-Capital/looker_period_control"
-  # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
-  ref: "v1.0.0" # Hash for tag V1.4.15
+  # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/releases
+  ref: "v1.0.1"
 }
 ```
 
