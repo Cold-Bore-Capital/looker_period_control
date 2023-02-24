@@ -95,6 +95,10 @@ view: main {
       value: "999"
     }
     allowed_value: {
+      label: "Last Data"
+      value: "999"
+    }
+    allowed_value: {
       label: "End of Last Full Week"
       value: "last_full_week"
     }
@@ -408,9 +412,9 @@ view: main {
             {%- case exclude_days._parameter_value -%}
              {%- when "999" -%}
                 {%- if convert_tz._parameter_value == 'true' -%}
-                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name}))
+                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name}))))
                 {%- else -%}
-                  (select max(${origin_event_date}) from ${origin_table_name})
+                  date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name})))
                 {%- endif -%}
              {%- when "1" -%}
                 dateadd('seconds', -1, date(${end_date_dim_as_of_mod}))
