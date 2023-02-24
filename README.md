@@ -151,7 +151,7 @@ Copy and paste the following template into the file, updating the fields as spec
   parameter: convert_tz {
     # Instructions: If your date is just a date with no time, set this value to no. If your date is a date with time, set to yes. It is VERY important that you do
     # not set this value to yes if you only have a date. Bad things will happen.
-    default_value: "yes"
+    default_value: "no"
 
     # --- Do Not Edit Below this Line ----
     type: yesno
