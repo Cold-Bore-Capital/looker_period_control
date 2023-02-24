@@ -91,8 +91,12 @@ view: main {
       value: "2"
     }
     allowed_value: {
-      label: "Last Data"
-      value: "999"
+      label: "Last Data - Including Future"
+      value: "last_data_future"
+    }
+    allowed_value: {
+      label: "Last Data - Max Today "
+      value: "last_data_max_today"
     }
     allowed_value: {
       label: "End of Last Full Week"
@@ -406,11 +410,17 @@ view: main {
         {%- else -%}
           {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
             {%- case exclude_days._parameter_value -%}
-             {%- when "999" -%}
+             {%- when "last_data_future" -%}
                 {%- if convert_tz._parameter_value == 'true' -%}
-                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name}))
+                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name}))))
                 {%- else -%}
-                  (select max(${origin_event_date}) from ${origin_table_name})
+                  date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name})))
+                {%- endif -%}
+             {% - when "last_data_max_today" -%}
+                {%- if convert_tz._parameter_value == 'true' -%}
+                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})))))
+                {%- else -%}
+                  date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name}))))
                 {%- endif -%}
              {%- when "1" -%}
                 dateadd('seconds', -1, date(${end_date_dim_as_of_mod}))
@@ -475,7 +485,7 @@ view: main {
     hidden: yes
     sql: {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
             {%- case exclude_days._parameter_value -%}
-             {%- when "999" -%}
+             {%- when "last_data_future" -%}
                 date_add('days', -${days_between_last_data_and_current}, ${start_date})
              {%- when "1" -%}
                 date_add('days', -1, ${start_date})
