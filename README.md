@@ -33,7 +33,7 @@ To use the Looker Period Control Block, you will need to add the external packag
 remote_dependency: looker_period_control {
   url: "https://github.com/Cold-Bore-Capital/looker_period_control"
   # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
-  ref: "a7a0b6807862e93ac3e75a1aaa10510b07ef156e" # Hash for tag V1.4.15
+  ref: "v1.0.0" # Hash for tag V1.4.15
 }
 ```
 
