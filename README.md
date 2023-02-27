@@ -5,6 +5,7 @@ Unlink many existing period over period blocks for Looker, the Looker Period Con
 
 ## Demo Video
 [Demo Video (YouTube)](https://youtu.be/u5Dv320JH-s)
+
 [Training Videos Playlist (YouTube)](https://youtube.com/playlist?list=PLXv5JOXwwDwFJVN1tnr6aPxz-sZB6o_6T)
 
 ## Key Features
