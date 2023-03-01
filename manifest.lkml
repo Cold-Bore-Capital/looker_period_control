@@ -1,6 +1,6 @@
 project_name: "looker_period_control"
 
-constant: block_field_name {
+constant: period_control_group_title {
   value: "Z - Period Control"
   export: override_optional
 }

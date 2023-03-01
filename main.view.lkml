@@ -33,7 +33,7 @@ view: main {
     description: "Use this to change the value of the current date. Setting to a date will change the tile/dashboard to act as if today is the selected date."
     type: date
     group_label: "Tile or Dashboard Filters"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
   }
 
   parameter: size_of_range {
@@ -41,7 +41,7 @@ view: main {
     description: "How many days in your period? Only applies to the Trailing option of the Period Selection parameter."
     label: "Number of Trailing Days"
     group_label: "Tile or Dashboard Filters"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     type: unquoted
     allowed_value: {
       label: "Select"
@@ -76,7 +76,7 @@ view: main {
     description: "Allows for an exclusion of the current date, two days ago, last data found in the table, or the last completed week, month, quarter, year."
     label: "Exclude Days"
     group_label: "Tile or Dashboard Filters"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     type: unquoted
     allowed_value: {
       label: "No Exclude"
@@ -120,7 +120,7 @@ view: main {
   parameter: period_selection {
     alias: [user_compare_to, compare_to, user_period_selection]
     label: "Period Selection"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Tile or Dashboard Filters"
     type: unquoted
     allowed_value: {
@@ -169,7 +169,7 @@ view: main {
   parameter: compare_to_period {
     alias: [pop_selection]
     label: "Compare To"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Tile or Dashboard Filters"
     type: unquoted
     allowed_value: {
@@ -202,7 +202,7 @@ view: main {
   parameter: debug {
     label: "Debug Mode"
     group_label: "Tile Only Filters"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     type: yesno
     default_value: "no"
   }
@@ -214,7 +214,7 @@ view: main {
     alias: [comparison_periods, period_size]
     label: "Number of Periods"
     group_label: "Tile Only Filters"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     description: "Selects the number of days in the period."
     type: number
     allowed_value: {
@@ -278,7 +278,7 @@ view: main {
   parameter: display_dates_in_period_labels {
     alias: [display_dates_in_trailing_periods]
     group_label: "Tile Only Filters"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     description: "Display the dates alongside the periods. For example 'Current Period - 2021-01-01 to 2021-04-01'. Note that this will cause any custom colors set for the series to break when the dates change (i.e. the next day)."
     type: yesno
     default_value: "No"
@@ -292,7 +292,7 @@ view: main {
     alias: [user_snap_start_date_to, tile_snap_start_date_to]
     label: "Snap Start Date to"
     description: "Setting this filter will ensure that the start date includes the begining of the selected period. For example, if you selected trailing 365, the first month might be partial. Selecting snap to month would ensure a complete first month. Cannot be used with period over period."
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Tile Only Filters"
     type: unquoted
     allowed_value: {
@@ -688,7 +688,7 @@ view: main {
 
   dimension: invalid_state_warning {
     description: "This can be used on a dashboard to indicate to the user where an invalid filter selection state exists."
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     label: "Filter Warning Block"
     group_label: "Display Blocks"
     type: string
@@ -730,7 +730,7 @@ view: main {
   # *************************************************************************************
 
   dimension: period {
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     label: "Period"
     group_label: "Pivot Dimensions"
     type: string
@@ -1050,7 +1050,7 @@ view: main {
 
   dimension: seconds_in_period {
     label: "Seconds in Period"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Period Duration"
     description: "Provides the number of seconds in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size."
     type: number
@@ -1127,7 +1127,7 @@ view: main {
     ##
     # Date group used on X axis for time series analysis type charts.
     label: "Date in Period"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "X Axis Dimensions"
     description: "Use this as your date dimension when comparing periods. Aligns the all previous periods onto the current period"
     type: time
@@ -1148,7 +1148,7 @@ view: main {
 
   dimension: minutes_in_period {
     label: "Minutes in Period"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Period Duration"
     description: "Provides the number of minutes in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size."
     type: number
@@ -1158,7 +1158,7 @@ view: main {
   dimension: days_in_period {
     alias: [period_1_len]
     label: "Days in Period"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Period Duration"
     description: "Provides the number of days in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size. For example, revenue per day."
     type: number
@@ -1175,7 +1175,7 @@ view: main {
     type: yesno
     default_value: "no"
     description: "Display the time in the first period date range display"
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Display Blocks"
   }
 
@@ -1192,7 +1192,7 @@ view: main {
   measure: date_range_display_period_1 {
     label: "First Period Date Range"
     description: "This will display the date range for the first period."
-    view_label: "@{block_field_name}"
+    view_label: "@{period_control_group_title}"
     group_label: "Display Blocks"
     type: string
     sql:
