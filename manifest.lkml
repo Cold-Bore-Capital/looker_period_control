@@ -33,3 +33,13 @@ constant: database_time_zone {
   value: "UTC"
   export: override_optional
 }
+
+constant: database_type {
+  # Options:
+  # 1. redshift
+  # 2. big_query
+  # 3. snowflake
+  value: "redshift"
+  # value: "big_query"
+  # value: "snowflake"
+}
