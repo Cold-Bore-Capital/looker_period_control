@@ -40,6 +40,5 @@ constant: database_type {
   # 2. big_query
   # 3. snowflake
   value: "redshift"
-  # value: "big_query"
-  # value: "snowflake"
+  export: override_optional
 }
