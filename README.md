@@ -4,7 +4,9 @@ This is a Looker block that allows you to control the period of time that is bei
 Unlink many existing period over period blocks for Looker, the Looker Period Control block relies heavily on LookML. This shifts processing to Looker instead of the database, and allows the system to generate SQL that's easy to read and debug.
 
 ## Demo Video
-[Demo Video](https://youtu.be/u5Dv320JH-s)
+[Demo Video (YouTube)](https://youtu.be/u5Dv320JH-s)
+
+[Training Videos Playlist (YouTube)](https://youtube.com/playlist?list=PLXv5JOXwwDwFJVN1tnr6aPxz-sZB6o_6T)
 
 ## Key Features
 * Control the period of time for a dashboard or tile via a simple dropdown.
