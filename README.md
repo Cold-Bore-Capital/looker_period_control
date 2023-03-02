@@ -36,7 +36,7 @@ Add the following code to your manifest file. This will allow you to use the blo
 remote_dependency: looker_period_control {
   url: "https://github.com/Cold-Bore-Capital/looker_period_control"
   # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
-  ref: "v1.0.0" # Hash for tag V1.4.15
+  ref: "v1.1.2"
 }
 ```
 
@@ -51,14 +51,14 @@ Example: Set the database type to BigQuery
 remote_dependency: looker_period_control {
   url: "https://github.com/Cold-Bore-Capital/looker_period_control.git"
   # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
-  ref: "v1.1.0"
+  ref: "v1.1.2"
   override_constant: database_type {
     value: "bigquery"
   }
 }
 ```
 
-##### Options
+##### Override Options List
 * `database_type` - Defaults to `redshift`. This is used to generate the correct SQL for the database you are using. Options are:
   * `redshift`
   * `bigquery`
@@ -69,7 +69,7 @@ remote_dependency: looker_period_control {
 
 * `date_display_formt` - Set format for dates. Defaults to `YYYY-MM-DD`. Any format supported by your database. Do not enter time here, that is controlled by the `time_display_format` constant.
 * `time_display_format` - Set format for time. Defaults to `HH:MI`. Any format supported by your database.
-* `database_time_zone` - Set the time zone of your database. Defaults to `UTC`. This is used to convert the date to the correct time zone.
+* `database_time_zone` - Set the time zone of your database. Defaults to `UTC`. This is used to convert the date to the correct time zone. Note, this has no effect for BigQuery where timestamps are allways UTC.
 
 ### Model Explore
 Adding the looker_period_control block to your explore only takes a single line of code. Simply add `sql_always_where: ${sql_always_where_inject};;` to the explore block. This will allow the Looker Period Control block to inject the correct date filter into the explore.

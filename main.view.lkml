@@ -339,7 +339,10 @@ view: main {
     convert_tz: no
     sql:
       {%- if convert_tz._parameter_value == 'true' -%}
-      convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', ${event_date})
+        {%- case '@{database_type}' -%}
+          {%- when "big_query" -%}  datetime(${event_date}, '{{ _query._query_timezone }}')
+          {%- else -%}  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', ${event_date})
+        {%- endcase -%}
       {%- else -%}
         ${event_date}
       {%- endif -%};;
@@ -357,18 +360,18 @@ view: main {
     type: date_raw
     sql:
     {%- if _query._query_timezone != '@{database_time_zone}' -%}
-        convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}',
+
         {%- case '@{database_type}' -%}
-          {%- when "redshift" -%} getdate()
-          {%- when "snowflake" -%} current_timestamp
-          {%- when "bigquery" -%} current_timestamp()
+          {%- when "redshift" -%} convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', getdate())
+          {%- when "snowflake" -%} convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', current_timestamp)
+          {%- when "bigquery" %} datetime(current_timestamp(), '{{ _query._query_timezone }}')
         {%- endcase -%}
-        )
+
     {%- else -%}
         {%- case '@{database_type}' -%}
           {%- when "redshift" -%} getdate()
           {%- when "snowflake" -%} current_timestamp
-          {%- when "bigquery" -%} current_timestamp()
+          {%- when "bigquery" %} datetime(current_timestamp())
         {%- endcase -%}
     {%- endif -%};;
     convert_tz: no
@@ -389,7 +392,7 @@ view: main {
     sql:
       {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value == '0' -%}
         {%- case '@{database_type}' -%}
-          {%- when "bigquery" -%} date_add(date(${getdate_func}), interval 86399 second)
+          {%- when "bigquery" %} date_add(date_trunc(${getdate_func}, DAY), interval 86399 second)
           {%- else -%} date_add('seconds', 86399, date(${getdate_func}))
         {%- endcase %}
 
@@ -397,7 +400,7 @@ view: main {
           ${getdate_func}
       {%- else -%}
         {%- case '@{database_type}' -%}
-          {%- when "bigquery" -%} date_add({%- parameter as_of_date -%}, interval 86399 second))
+          {%- when "bigquery" %} date_add({%- parameter as_of_date -%}, interval 86399 second))
           {%- else -%} date_add('seconds', 86399, {%- parameter as_of_date -%})
         {%- endcase %}
 
@@ -418,22 +421,22 @@ view: main {
             {%- case period_selection._parameter_value -%}
                 {%- when 'lw' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} date_add(date_trunc(${end_date_dim_as_of_mod}, 'week'), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, WEEK), interval -1 second))
                       {%- else %} date_add('seconds', -1, date_trunc('week', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
                 {%- when 'lm' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} date_add(date_trunc(${end_date_dim_as_of_mod}, 'month'), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, MONTH), interval -1 second))
                       {%- else -%} date_add('seconds', -1, date_trunc('month', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
                 {%- when 'lq' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} date_add(date_trunc(${end_date_dim_as_of_mod}, 'quarter'), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, QUARTER), interval -1 second))
                       {%- else -%} date_add('seconds', -1, date_trunc('quarter', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
                 {%- when 'ly' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} date_add(date_trunc(${end_date_dim_as_of_mod}, 'year'), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, YEAR), interval -1 second))
                       {%- else -%} date_add('seconds', -1, date_trunc('year', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
             {%- endcase %}
@@ -442,61 +445,64 @@ view: main {
             {%- case exclude_days._parameter_value -%}
              {%- when "last_data_future" -%}
                 {%- if convert_tz._parameter_value == 'true' -%}
-                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}',
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} date_add(date((select max(${origin_event_date}) from ${origin_table_name})), interval 86399 second)
-                      {%- else -%} date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name})))
+                      {%- when "bigquery" %} datetime(date_add(date_trunc((select max(${origin_event_date}) from ${origin_table_name}), DAY), interval 86399 second), '{{ _query._query_timezone }}')
+                      {%- else -%} convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name}))))
                     {%- endcase %}
-                    )
+
                 {%- else -%}
-                  date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name})))
+                {%- case '@{database_type}' -%}
+                  {%- when "big_query" -%}  date_add(date_trunc((select max(${origin_event_date}) from ${origin_table_name}), DAY), interval 86399 SECOND)
+                  {%- else -%}  date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name})))
+                {%- endcase -%}
+
                 {%- endif -%}
              {% - when "last_data_max_today" -%}
                 {%- if convert_tz._parameter_value == 'true' -%}
-                  convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}',
+
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} date_add(date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name}))), interval 86399 second))
-                      {%- else -%} date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name}))))
+                      {%- when "bigquery" %} datetime(date_add(date_trunc(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})), DAY), interval 86399 second), '{{ _query._query_timezone }}')
+                      {%- else -%} convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})))))
                     {%- endcase %}
 
                 {%- else -%}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" -%} date_add(date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name}))), interval 86399 second))
+                    {%- when "bigquery" %} date_add(date_trunc(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})), DAY), interval 86399 second)
                     {%- else -%} date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name}))))
                   {%- endcase %}
 
                 {%- endif -%}
              {%- when "1" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(date(${end_date_dim_as_of_mod}), interval -1 seconds)
+                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, DAY), interval -1 SECOND)
                   {%- else %} date_add('seconds', -1, date(${end_date_dim_as_of_mod}))
                 {%- endcase %}
 
              {%- when "2" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(date(${end_date_dim_as_of_mod}), interval -86401 seconds)
+                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, DAY), interval -86401 SECOND)
                   {%- else %} date_add('seconds', -86401, date(${end_date_dim_as_of_mod}))
                 {%- endcase %}
 
              {%- when "last_full_week" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, 'week'), interval -1 seconds)
+                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, WEEK), interval -1 SECOND)
                   {%- else %} date_add('seconds', -1, date_trunc('week', ${end_date_dim_as_of_mod}))
                 {%- endcase %}
 
              {%- when "last_full_month" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, 'month'), interval -1 seconds)
+                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, MONTH), interval -1 SECOND)
                   {%- else %} date_add('seconds', -1, date_trunc('month', ${end_date_dim_as_of_mod}))
                 {%- endcase %}
              {%- when "last_full_quarter" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod},'quarter'), interval -1 seconds)
+                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod},QUARTER), interval -1 SECOND)
                   {%- else %} date_add('seconds', -1, date_trunc('quarter', ${end_date_dim_as_of_mod}))
                 {%- endcase %}
              {%- when "last_full_year" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod},'year'), interval -1 seconds)
+                  {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod},YEAR), interval -1 SECOND)
                   {%- else %} date_add('seconds', -1, date_trunc('year', ${end_date_dim_as_of_mod}))
                 {%- endcase %}
              {%- else -%}
@@ -512,17 +518,18 @@ view: main {
   dimension: days_between_last_data_and_current {
     # The goal here is to get an offset from current date to last data date as a number, and pass that into the date_add function. This is a bit complex, but
     # it works.
+
     hidden: yes
     sql:
     {%- if convert_tz._parameter_value == 'true' -%}
       {%- case '@{database_type}' -%}
-        {%- when "bigquery" %} date_diff(convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name})), current_date, 'days')
+        {%- when "bigquery" %} date_diff(datetime((select max(${origin_event_date}) from ${origin_table_name}), '{{ _query._query_timezone }}'), current_date, DAY)
         {%- else %} date_diff('days', convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', (select max(${origin_event_date}) from ${origin_table_name})), current_date)
       {%- endcase %}
     {%- else -%}
       {%- case '@{database_type}' -%}
-        {%- when "bigquery" %} date_diff((select max(${origin_event_date}) from ${origin_table_name}), current_date, 'day')
-        {%- else %} date_diff((select max(${origin_event_date}) from ${origin_table_name}), current_date, 'days')
+        {%- when "bigquery" %} date_diff((select max(${origin_event_date}) from ${origin_table_name}), current_date, DAY)
+        {%- else %} date_diff('days', (select max(${origin_event_date}) from ${origin_table_name}), current_date)
       {%- endcase %}
     {%- endif -%} ;;
   }
@@ -536,11 +543,15 @@ view: main {
       {%- if as_of_date._parameter_value == 'NULL' -%}
           {%- if period_selection._parameter_value == 'trailing' -%}
             {%- case '@{database_type}' -%}
-              {%- when "bigquery" %} date_add(date(${getdate_func}), interval 1 day)
+              {%- when "bigquery" %} date_add(date_trunc(${getdate_func}, DAY), interval 1 day)
               {%- else %} date_add('days', 1, date(${getdate_func}))
             {%- endcase -%}
           {%- else -%}
-              date(${getdate_func})
+            {%- case '@{database_type}' -%}
+              {%- when "big_query" -%}  date_trunc(${getdate_func}, DAY)
+              {%- else -%}  date(${getdate_func})
+            {%- endcase -%}
+
           {%- endif -%}
       {%- else -%}
           {%- if period_selection._parameter_value == 'trailing' -%}
@@ -549,7 +560,10 @@ view: main {
               {%- else %} date_add('days', 1, {%- parameter as_of_date -%})
             {%- endcase -%}
           {%- else -%}
-              date({%- parameter as_of_date -%})
+            {%- case '@{database_type}' -%}
+              {%- when "big_query" -%}  date_trunc({%- parameter as_of_date -%}, DAY)
+              {%- else -%}  date({%- parameter as_of_date -%})
+            {%- endcase -%}
           {%- endif -%}
       {%- endif -%};;
   }
@@ -563,17 +577,17 @@ view: main {
             {%- case exclude_days._parameter_value -%}
              {%- when "last_data_future" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(${start_date}, interval -${days_between_last_data_and_current} 'day')
+                  {%- when "bigquery" %} date_add(${start_date}, interval -${days_between_last_data_and_current} DAY)
                   {%- else %} date_add('days', -${days_between_last_data_and_current}, ${start_date})
                 {%- endcase %}
              {%- when "1" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(${start_date}, interval -1 'day')
+                  {%- when "bigquery" %} date_add(${start_date}, interval -1 DAY)
                   {%- else %} date_add('days', -1, ${start_date})
                 {%- endcase %}
              {%- when "2" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(${start_date}, interval -2 'day')
+                  {%- when "bigquery" %} date_add(${start_date}, interval -2 DAY)
                   {%- else -%} date_add('days', -2, ${start_date})
                 {%- endcase %}
              {%- when "last_full_week" -%}
@@ -609,42 +623,42 @@ view: main {
         {%- case period_selection._parameter_value -%}
             {%- when 'wtd' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(${start_date_post_exclude}, 'week')
+                {%- when "bigquery" %} datetime(date_trunc(${start_date_post_exclude}, WEEK))
                 {%- else %} date_trunc('w', ${start_date_post_exclude})
               {%- endcase %}
             {%- when 'mtd' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(${start_date_post_exclude}, 'month')
+                {%- when "bigquery" %} datetime(date_trunc(${start_date_post_exclude}, MONTH))
                 {%- else %} date_trunc('mon', ${start_date_post_exclude})
               {%- endcase %}
             {%- when 'qtd' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(${start_date_post_exclude}, 'quarter')
+                {%- when "bigquery" %} datetime(date_trunc(${start_date_post_exclude}, QUARTER))
                 {%- else %} date_trunc('qtrs', ${start_date_post_exclude})
               {%- endcase %}
             {%- when 'ytd' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(${start_date_post_exclude}, 'year')
+                {%- when "bigquery" %} datetime(date_trunc(${start_date_post_exclude}, YEAR))
                 {%- else %} date_trunc('y', ${start_date_post_exclude})
               {%- endcase %}
             {%- when 'lw' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" -%} date_trunc(date_add(${start_date_post_exclude}, interval - 1 'week'), 'week')
+                {%- when "bigquery" %} datetime(date_trunc(date_add(${start_date_post_exclude}, interval - 1 WEEK), WEEK))
                 {%- else %} date_trunc('w', date_add('w', -1, ${start_date_post_exclude}))
               {%- endcase %}
             {%- when 'lm' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(date_add(${start_date_post_exclude}, interval -1 'month'), 'month')
+                {%- when "bigquery" %} datetime(date_trunc(date_add(${start_date_post_exclude}, interval -1 MONTH), MONTH))
                 {%- else %} date_trunc('mon', date_add('mon', -1, ${start_date_post_exclude}))
               {%- endcase %}
             {%- when 'lq' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(date_add(${start_date_post_exclude}, interval -1 'quarter'), 'quarter')
+                {%- when "bigquery" %} datetime(date_trunc(date_add(${start_date_post_exclude}, interval -1 QUARTER), QUARTER))
                 {%- else %} date_trunc('qtrs', date_add('qtrs', -1, ${start_date_post_exclude}))
               {%- endcase %}
             {%- when 'ly' -%}
               {%- case '@{database_type}' -%}
-                {%- when "bigquery" %} date_trunc(date_add(${start_date_post_exclude}, interval -1 'year'), 'year')
+                {%- when "bigquery" %} datetime(date_trunc(date_add(${start_date_post_exclude}, interval -1 YEAR), YEAR))
                 {%- else %} date_trunc('y', date_add('y', -1, ${start_date_post_exclude}))
               {%- endcase %}
             {%- else -%}
@@ -780,24 +794,24 @@ view: main {
           {%- if i == 1 -%}
                when ${event_date_tz_convert} between
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} 'day')
+                  {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} DAY)
                   {%- else %}  date_add('days', -{{- _range_start -}}, ${start_date_dim})
                 {%- endcase %}
                and
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(${end_date_dim}, inteval -{{- _range_end }} 'days')
+                  {%- when "bigquery" %} date_add(${end_date_dim}, interval -{{- _range_end }} DAY)
                   {%- else %} date_add('days', -{{- _range_end -}}, ${end_date_dim})
                 {%- endcase %}
                   then {{ _period_name }}
 
                {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" -%} || ' (' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${start_date_dim}), interval -{{ _range_start }} 'day')
+                    {%- when "bigquery" %} || ' (' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${start_date_dim}, interval -{{ _range_start }} DAY))
                     {%- else %} || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                   {%- endcase %}
                   {%- if _range_size != 1 -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} || ' to ' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${end_date_dim}, interval -{{ _range_end }} 'day'))
+                      {%- when "bigquery" %} || ' to ' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${end_date_dim}, interval -{{ _range_end }} DAY))
                       {%- else %} || ' to ' || to_char(date_add('days', -{{- _range_end -}}, ${end_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                     {%- endcase %}
                   {%- endif %} || ')'
@@ -809,20 +823,20 @@ view: main {
               {%- when 'prior_period' %}
                   when ${event_date_tz_convert} between
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} 'day')
+                      {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} DAY)
                       {%- else %} date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim})
                     {% endcase -%}
                      then {{ _period_name }}
 
                 {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" -%} || ' (' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${start_date_dim}, interval -{{ _range_start }} 'day'))
+                      {%- when "bigquery" %} || ' (' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${start_date_dim}, interval -{{ _range_start }} DAY))
                       {%- else %}  || ' (' || to_char(date_add('days', -{{- _range_start -}}, ${start_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                     {%- endcase %}
 
                     {%- if _range_size != 1 -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} || ' to ' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${end_date_dim}), interval -{{ _range_end | minus: 1 }} 'day')
+                      {%- when "bigquery" %} || ' to ' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} DAY))
                       {%- else %} || ' to ' || to_char(date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                     {%- endcase %}
 
@@ -832,20 +846,20 @@ view: main {
               {%- when 'prior_week' %}
                   when ${event_date_tz_convert} between
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'week') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'day')
+                    {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} DAY)
                     {%- else %} date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
                   then {{ _period_name }}
 
                 {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} || ' (' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'week'))
+                    {%- when "bigquery" %} || ' (' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK))
                     {%- else %} || ' (' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                   {%- endcase %}
 
                     {%- if _range_size != 1 -%}
                       {%- case '@{database_type}' -%}
-                        {%- when "bigquery" %} || ' to ' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval  -{{- i | minus: 1}} 'week'))
+                        {%- when "bigquery" %} || ' to ' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval  -{{- i | minus: 1}} WEEK))
                         {%- else %} || ' to ' || to_char(date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                       {%- endcase %}
                     {%- endif %} || ')'
@@ -854,21 +868,20 @@ view: main {
               {%- when 'prior_month' %}
                   when ${event_date_tz_convert} between
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'month') and date_add(date_add(${end_date_dim}, interval -{{ _range_end -}} day), interval -{{ i | minus: 1}} 'month')
+                      {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} MONTH) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} day), interval -{{ i | minus: 1}} MONTH)
                       {%- else %} date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                     {%- endcase %}
                     then '{{ _period_prefix | append: " " | append: _period_suffix }}'
 
-
                   {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} || ' (' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, -{{- _range_start }} 'day'), interval -{{ i | minus: 1}} 'month'))
+                      {%- when "bigquery" %} || ' (' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{- _range_start }} DAY), interval -{{ i | minus: 1}} MONTH))
                       {%- else %} || ' (' || to_char(date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                     {%- endcase %}
 
                     {%- if _range_size != 1 -%}
                       {%- case '@{database_type}' -%}
-                        {%- when "bigquery" %} || ' to ' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'month'))
+                        {%- when "bigquery" %} || ' to ' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} MONTH))
                         {%- else %} || ' to ' || to_char(date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                       {%- endcase %}
 
@@ -878,20 +891,20 @@ view: main {
               {%- when 'prior_quarter' %}
                   when ${event_date_tz_convert} between
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} quarter)  and date_add(date_add('days', -{{- _range_end -}}, ${end_date_dim}), interval -{{ i | minus: 1}} 'quarter')
+                      {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} quarter)  and date_add(date_add('days', -{{- _range_end -}}, ${end_date_dim}), interval -{{ i | minus: 1}} QUARTER)
                       {%- else %} date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                     {%- endcase %}
                      then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} || ' (' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'quarter'))
+                      {%- when "bigquery" %} || ' (' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} QUARTER))
                       {%- else %} || ' (' || to_char(date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
 
                     {%- endcase %}
 
                     {%- if _range_size != 1 -%}
                       {%- case '@{database_type}' -%}
-                        {%- when "bigquery" %} | ' to ' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'quarter'))
+                        {%- when "bigquery" %} | ' to ' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} QUARTER))
                         {%- else %} || ' to ' || to_char(date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                       {%- endcase %}
 
@@ -901,19 +914,19 @@ view: main {
               {%- when 'prior_year' %}
                   when ${event_date_tz_convert} between
                   {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'year') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'year')
+                      {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR)
                       {%- else %} date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                     {%- endcase %}
                      then '{{ _period_prefix | append: " " | append: _period_suffix }}'
                   {%- if display_dates_in_period_labels._parameter_value == 'true' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} || ' (' || format_date(~RG~Format~ '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'year'))
+                      {%- when "bigquery" %} || ' (' || format_date('@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}', date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR))
                       {%- else %} || ' (' || to_char(date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                     {%- endcase %}
 
                     {%- if _range_size != 1 -%}
                       {%- case '@{database_type}' -%}
-                        {%- when "bigquery" %} || ' to ' || format_date(~RG~Format~  '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}',date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'year'))
+                        {%- when "bigquery" %} || ' to ' || format_date( '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}',date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR))
                         {%- else %} || ' to ' || to_char(date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) , '@{date_display_format}{%- if show_time_in_date_display._parameter_value == 'true' %} @{time_display_format}{%- endif -%}')
                       {%- endcase %}
 
@@ -968,7 +981,7 @@ view: main {
             {%- if i == 1 %}
                     when ${event_date_tz_convert} between
                       {%- case '@{database_type}' -%}
-                        {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end }} 'day')
+                        {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end }} DAY)
                         {%- else %} date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim})
                       {%- endcase %}
                       then {{i}}
@@ -979,14 +992,14 @@ view: main {
                 {%- when 'prior_period' %}
                     when ${event_date_tz_convert} between
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} 'day')
+                      {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} DAY)
                       {%- else %} date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim})
                     {%- endcase %}
                      then {{i}}
                 {%- when 'prior_week' %}
                     when ${event_date_tz_convert} between
                       {%- case '@{database_type}' -%}
-                        {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'week') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'week')
+                        {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} WEEK)
                         {%- else %} date_add('w', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                       {%- endcase %}
                       then {{i}}
@@ -994,21 +1007,21 @@ view: main {
                 {%- when 'prior_month' %}
                   when ${event_date_tz_convert} between
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" -%} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'month') and date_add(date_add(${end_date_dim},interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'month')
+                    {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} MONTH) and date_add(date_add(${end_date_dim},interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} MONTH)
                     {%- else %} date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
                   then {{i}}
 
                 {%- when 'prior_quarter' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'quarter')  and date_add(date_add(${end_date_dim},interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'quarter')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} QUARTER)  and date_add(date_add(${end_date_dim},interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} QUARTER)
                     {%- else %} when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
                   then {{i}}
 
                 {%- when 'prior_year' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'year') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval  -{{ i | minus: 1}} 'year')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval  -{{ i | minus: 1}} YEAR)
                     {%- else %} when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
                   then {{i}}
@@ -1040,7 +1053,7 @@ view: main {
 
         {%- if _range_start > 0 -%}
           {%- case '@{database_type}' -%}
-            {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }}  'day')
+            {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }}  DAY)
             {%- else %} date_add('days', -{{- _range_start -}}, ${start_date_dim})
           {%- endcase %}
         {%- else -%}
@@ -1075,7 +1088,7 @@ view: main {
             {%- if i == 1 -%}
               when ${event_date_tz_convert} between
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" -%} date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end }} 'day') then date_diff(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'),  date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), 'second')
+                  {%- when "bigquery" %} date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end }} DAY) then date_diff(date_add(${start_date_dim}, interval -{{ _range_start }} DAY),  date_add(${end_date_dim}, interval -{{ _range_end }} DAY), SECOND)
                   {%- else %} date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim}) then date_diff('seconds',  date_add('days', -{{- _range_start -}}, ${start_date_dim}),  date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                 {%- endcase %}
 
@@ -1084,31 +1097,31 @@ view: main {
               {%- case _compare_to_period %}
                 {%- when 'prior_period' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} 'day') then date_diff(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} 'day'), 'second')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} DAY) then date_diff(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} DAY), SECOND)
                     {%- else %} when ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}) then date_diff('seconds', date_add('days', -{{- _range_start -}}, ${start_date_dim}), date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim}))
                   {%- endcase %}
 
                 {%- when 'prior_week' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'week') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'week') then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'week'), date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'week'), 'second')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} WEEK) then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK), date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} WEEK), SECOND)
                     {%- else %} when ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then date_diff('seconds', date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('w', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
                   {%- endcase %}
 
                 {%- when 'prior_month' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'month') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'month') then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'month'), date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'month'), 'second')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} MONTH) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} MONTH) then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} MONTH), date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} MONTH), SECOND)
                     {%- else %} when ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then date_diff('seconds',date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})), date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
                   {%- endcase %}
 
                 {%- when 'prior_quarter' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'quarter') and  date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'quarter') then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'quarter'),  date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'quarter'), 'second')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} QUARTER) and  date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} QUARTER) then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} QUARTER),  date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} QUARTER), SECOND)
                     {%- else %} when ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then date_diff('seconds', date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})),  date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
                   {%- endcase %}
 
                 {%- when 'prior_year' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'year') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'year') then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'year') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'year'), 'second')
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR) then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR), SECOND)
                     {%- else %} when ${event_date_tz_convert} between date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})) then date_diff('seconds', date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('yrs', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim})))
                   {%- endcase %}
 
@@ -1137,7 +1150,7 @@ view: main {
 
       {%- if period_count._parameter_value != 1 %}
         {%- case '@{database_type}' -%}
-          {%- when "bigquery" %} date_add(${first_period_start_date}, interval ${seconds_in_period} 'second')
+          {%- when "bigquery" %} date_add(${first_period_start_date}, interval ${seconds_in_period} SECOND)
           {%- else %} date_add('seconds', ${seconds_in_period}, ${first_period_start_date})
         {%- endcase %}
 
@@ -1201,14 +1214,14 @@ view: main {
     {%- if show_time_in_date_display._parameter_value == 'false' %}
 
       {%- case '@{database_type}' -%}
-        {%- when "bigquery" %} format_date(~RG~Format~ '@{date_display_format}', ${min_date_in_range}) || ' to ' || format_date(~RG~Format~ '@{date_display_format}', ${max_date_in_range})
+        {%- when "bigquery" %} format_date('@{date_display_format}', ${min_date_in_range}) || ' to ' || format_date('@{date_display_format}', ${max_date_in_range})
         {%- else %} to_char(${min_date_in_range}, '@{date_display_format}') || ' to ' || to_char(${max_date_in_range}, '@{date_display_format}')
       {%- endcase %}
 
     {%- else %}
 
       {%- case '@{database_type}' -%}
-        {%- when "bigquery" %} format_date(~RG~Format~ '@{date_display_format} @{time_display_format}', ${min_date_in_range}) || ' to ' || format_date(~RG~Format~ '@{date_display_format} @{time_display_format}', ${max_date_in_range})
+        {%- when "bigquery" %} format_date('@{date_display_format} @{time_display_format}', ${min_date_in_range}) || ' to ' || format_date('@{date_display_format} @{time_display_format}', ${max_date_in_range})
         {%- else %} to_char(${min_date_in_range}, '@{date_display_format} @{time_display_format}') || ' to ' || to_char(${max_date_in_range}, '@{date_display_format} @{time_display_format}')
       {%- endcase %}
 
@@ -1262,7 +1275,7 @@ view: main {
                 ${event_date_tz_convert} between
 
                 {% case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_trunc(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), '{%- parameter snap_start_date_to -%}') and date_add(${end_date_dim}, interval -{{ _range_end }} 'day')
+                  {%- when "bigquery" %} date_trunc(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), '{%- parameter snap_start_date_to -%}') and date_add(${end_date_dim}, interval -{{ _range_end }} DAY)
                   {%- else %} date_trunc('{%- parameter snap_start_date_to -%}', date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('days', -{{- _range_end -}}, ${end_date_dim})
                 {%- endcase %}
 
@@ -1272,7 +1285,7 @@ view: main {
               {% else -%}
 
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} ${event_date_tz_convert} between date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end }} 'day')
+                  {%- when "bigquery" %} ${event_date_tz_convert} between date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end }} DAY)
                   {%- else %} ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end -}}, ${end_date_dim})
                 {%- endcase %}
 
@@ -1283,7 +1296,7 @@ view: main {
                 {%- when 'prior_period' %}
                   or
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(${start_date_dim}, interval -{{ _range_start }} 'day') and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} 'day')
+                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(${start_date_dim}, interval -{{ _range_start }} DAY) and date_add(${end_date_dim}, interval -{{ _range_end | minus: 1 }} DAY)
                     {%- else %} ${event_date_tz_convert} between date_add('days', -{{- _range_start -}}, ${start_date_dim}) and date_add('days', -{{- _range_end | minus: 1 -}}, ${end_date_dim})
                   {%- endcase %}
 
@@ -1291,7 +1304,7 @@ view: main {
                 {%- when 'prior_week' %}
                   or
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'week') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'week')
+                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} WEEK)
                     {%- else %} ${event_date_tz_convert} between date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('w',   -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
 
@@ -1299,7 +1312,7 @@ view: main {
                 {%- when 'prior_month' %}
                     or
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'month') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'month')
+                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} MONTH) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} MONTH)
                     {%- else %} ${event_date_tz_convert} between date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('mon', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
 
@@ -1307,14 +1320,14 @@ view: main {
                 {%- when 'prior_quarter' %}
                     or
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'quarter')  and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'quarter')
+                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} QUARTER)  and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} QUARTER)
                     {%- else %} ${event_date_tz_convert} between date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim}))  and date_add('qtr', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
 
                 {%- when 'prior_year' %}
                     or
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} 'day'), interval -{{ i | minus: 1}} 'year') and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} 'day'), interval -{{ i | minus: 1}} 'year')
+                    {%- when "bigquery" %} ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR)
                     {%- else %} ${event_date_tz_convert} between date_add('year', -{{- i | minus: 1}}, date_add('days', -{{- _range_start -}}, ${start_date_dim})) and date_add('year', -{{- i | minus: 1}}, date_add('days', -{{- _range_end -}}, ${end_date_dim}))
                   {%- endcase %}
 

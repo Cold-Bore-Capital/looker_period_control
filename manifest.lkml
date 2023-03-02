@@ -29,7 +29,7 @@ constant: days_in_standard_quarter {
 }
 
 constant: database_time_zone {
-  # Set this to the value of the timezone in your database.
+  # Set this to the value of the timezone in your database. Note: Has no effect on BigQuery. BigQuery timestamps are allways UTC.
   value: "UTC"
   export: override_optional
 }
