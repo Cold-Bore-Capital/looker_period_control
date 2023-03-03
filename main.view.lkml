@@ -393,7 +393,7 @@ view: main {
     sql:
       {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value == '0' -%}
         {%- case '@{database_type}' -%}
-          {%- when "bigquery" %} date_add(date_trunc(${getdate_func}, DAY), interval 86399 second)
+          {%- when "bigquery" %} datetime(date_add(date_trunc(${getdate_func}, DAY), interval 86399 second))
           {%- else -%} date_add('seconds', 86399, date(${getdate_func}))
         {%- endcase %}
 
@@ -401,7 +401,7 @@ view: main {
           ${getdate_func}
       {%- else -%}
         {%- case '@{database_type}' -%}
-          {%- when "bigquery" %} date_add({%- parameter as_of_date -%}, interval 86399 second))
+          {%- when "bigquery" %} datetime(date_add({%- parameter as_of_date -%}, interval 86399 second))
           {%- else -%} date_add('seconds', 86399, {%- parameter as_of_date -%})
         {%- endcase %}
 
