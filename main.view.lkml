@@ -422,22 +422,22 @@ view: main {
             {%- case period_selection._parameter_value -%}
                 {%- when 'lw' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, WEEK), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, WEEK), interval -1 second)
                       {%- else %} date_add('seconds', -1, date_trunc('week', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
                 {%- when 'lm' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, MONTH), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, MONTH), interval -1 second)
                       {%- else -%} date_add('seconds', -1, date_trunc('month', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
                 {%- when 'lq' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, QUARTER), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, QUARTER), interval -1 second)
                       {%- else -%} date_add('seconds', -1, date_trunc('quarter', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
                 {%- when 'ly' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, YEAR), interval -1 second))
+                      {%- when "bigquery" %} date_add(date_trunc(${end_date_dim_as_of_mod}, YEAR), interval -1 second)
                       {%- else -%} date_add('seconds', -1, date_trunc('year', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
             {%- endcase %}
@@ -562,7 +562,7 @@ view: main {
             {%- endcase -%}
           {%- else -%}
             {%- case '@{database_type}' -%}
-              {%- when "bigquery" -%}  date_trunc({%- parameter as_of_date -%}, DAY)
+              {%- when "bigquery" -%}  datetime(date_trunc({%- parameter as_of_date -%}, DAY))
               {%- else -%}  date({%- parameter as_of_date -%})
             {%- endcase -%}
           {%- endif -%}
