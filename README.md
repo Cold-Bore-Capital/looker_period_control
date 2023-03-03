@@ -70,6 +70,8 @@ remote_dependency: looker_period_control {
 * `date_display_formt` - Set format for dates. Defaults to `YYYY-MM-DD`. Any format supported by your database. Do not enter time here, that is controlled by the `time_display_format` constant.
 * `time_display_format` - Set format for time. Defaults to `HH:MI`. Any format supported by your database.
 * `database_time_zone` - Set the time zone of your database. Defaults to `UTC`. This is used to convert the date to the correct time zone. Note, this has no effect for BigQuery where timestamps are allways UTC.
+* `days_in_standard_month` - Set the number of days for a "Prior Month" type comparison. Defaults to 30. See section on Prior Month compare for more details.
+* `days_in_standard_quarter` - Set the number of days for a "Prior Quarter" type comparison. Defaults to 91. See section on Prior Quarter compare for more details.
 
 ### Model Explore
 Adding the looker_period_control block to your explore only takes a single line of code. Simply add `sql_always_where: ${sql_always_where_inject};;` to the explore block. This will allow the Looker Period Control block to inject the correct date filter into the explore.
@@ -293,6 +295,8 @@ The `As Of Date` filter allows you to select a specific date to use as the end o
 
 ##### Compare To
 The `Compare To` filter allows you to select a period to compare the current period to. For example, if you have a tile that displays revenue by week, you can select `Prior Week` to compare the current week to last week. Options exist for trailing, prior week, month, quarter, or year.
+
+**Important Note about Month and Quarter "Compare To":** Because each month and quarter can have a different number of days, month and quarter comparisons are standardized to a set number of days set by the `days_in_standard_month` and `days_in_standard_quarter` constants. By default, these are set to 30 days for month, and 91 days for a quarter.
 
 ##### Exclude Days
 Exclude days allows you to start your data from a specific point. Option are:

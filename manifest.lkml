@@ -17,13 +17,13 @@ constant: time_display_format {
 }
 
 constant: days_in_standard_month {
-  # Set the number of days in a month. This is used for error checking, and may be used in a future version for a "normalize range size" function.
+  # Set the number of days in a month.
   value: "30"
   export: override_optional
 }
 
 constant: days_in_standard_quarter {
-  # Set the number of days in a quarter. This is used for error checking, and may be used in a future version for a "normalize range size" function.
+  # Set the number of days in a quarter.
   value: "91"
   export: override_optional
 }
