@@ -36,7 +36,7 @@ Add the following code to your manifest file. This will allow you to use the blo
 remote_dependency: looker_period_control {
   url: "https://github.com/Cold-Bore-Capital/looker_period_control"
   # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
-  ref: "v1.1.2"
+  ref: "v1.1.3"
 }
 ```
 
@@ -51,7 +51,7 @@ Example: Set the database type to BigQuery
 remote_dependency: looker_period_control {
   url: "https://github.com/Cold-Bore-Capital/looker_period_control.git"
   # Find the latest tag hash here https://github.com/Cold-Bore-Capital/looker_period_control/tags
-  ref: "v1.1.2"
+  ref: "v1.1.3"
   override_constant: database_type {
     value: "bigquery"
   }
