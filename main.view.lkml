@@ -447,28 +447,26 @@ view: main {
              {%- when "last_data_future" -%}
                 {%- if convert_tz._parameter_value == 'true' -%}
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} datetime(date_add(date_trunc((select max(${origin_event_date}) from ${origin_table_name}), DAY), interval 86399 second), '{{ _query._query_timezone }}')
+                      {%- when "bigquery" %} datetime(date_add(date_trunc(datetime((select max(${origin_event_date}) from ${origin_table_name})), DAY), interval 86399 second), '{{ _query._query_timezone }}')
                       {%- else -%} convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name}))))
                     {%- endcase %}
-
                 {%- else -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" -%}  date_add(date_trunc((select max(${origin_event_date}) from ${origin_table_name}), DAY), interval 86399 SECOND)
+                  {%- when "bigquery" -%}  datetime(date_add(date_trunc(datetime((select max(${origin_event_date}) from ${origin_table_name})), DAY), interval 86399 SECOND))
                   {%- else -%}  date_add('seconds', 86399, date((select max(${origin_event_date}) from ${origin_table_name})))
                 {%- endcase -%}
 
                 {%- endif -%}
              {% - when "last_data_max_today" -%}
                 {%- if convert_tz._parameter_value == 'true' -%}
-
                     {%- case '@{database_type}' -%}
-                      {%- when "bigquery" %} datetime(date_add(date_trunc(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})), DAY), interval 86399 second), '{{ _query._query_timezone }}')
+                      {%- when "bigquery" %} datetime(date_add(date_trunc(least(${getdate_func},datetime((select max(${origin_event_date}) from ${origin_table_name}))), DAY), interval 86399 second), '{{ _query._query_timezone }}')
                       {%- else -%} convert_timezone('@{database_time_zone}', '{{ _query._query_timezone }}', date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})))))
                     {%- endcase %}
 
                 {%- else -%}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} date_add(date_trunc(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name})), DAY), interval 86399 second)
+                    {%- when "bigquery" %} datetime(date_add(date_trunc(least(${getdate_func},datetime((select max(${origin_event_date}) from ${origin_table_name}))), DAY), interval 86399 second))
                     {%- else -%} date_add('seconds', 86399, date(least(${getdate_func},(select max(${origin_event_date}) from ${origin_table_name}))))
                   {%- endcase %}
 
@@ -529,7 +527,7 @@ view: main {
       {%- endcase %}
     {%- else -%}
       {%- case '@{database_type}' -%}
-        {%- when "bigquery" %} date_diff((select max(${origin_event_date}) from ${origin_table_name}), current_date, DAY)
+        {%- when "bigquery" %} date_diff(datetime((select max(${origin_event_date}) from ${origin_table_name})), current_date, DAY)
         {%- else %} date_diff('days', (select max(${origin_event_date}) from ${origin_table_name}), current_date)
       {%- endcase %}
     {%- endif -%} ;;
@@ -544,7 +542,7 @@ view: main {
       {%- if as_of_date._parameter_value == 'NULL' -%}
           {%- if period_selection._parameter_value == 'trailing' -%}
             {%- case '@{database_type}' -%}
-              {%- when "bigquery" %} date_add(date_trunc(${getdate_func}, DAY), interval 1 day)
+              {%- when "bigquery" %} datetime(date_add(date_trunc(${getdate_func}, DAY), interval 1 day))
               {%- else %} date_add('days', 1, date(${getdate_func}))
             {%- endcase -%}
           {%- else -%}
@@ -557,7 +555,7 @@ view: main {
       {%- else -%}
           {%- if period_selection._parameter_value == 'trailing' -%}
             {%- case '@{database_type}' -%}
-              {%- when "bigquery" %} date_add({%- parameter as_of_date -%}, interval 1 day)
+              {%- when "bigquery" %} datetime(date_add({%- parameter as_of_date -%}, interval 1 day))
               {%- else %} date_add('days', 1, {%- parameter as_of_date -%})
             {%- endcase -%}
           {%- else -%}
@@ -576,9 +574,9 @@ view: main {
     hidden: yes
     sql: {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
             {%- case exclude_days._parameter_value -%}
-             {%- when "last_data_future" -%}
+             {%- when "last_data_future" or "last_data_max_today" -%}
                 {%- case '@{database_type}' -%}
-                  {%- when "bigquery" %} date_add(${start_date}, interval -${days_between_last_data_and_current} DAY)
+                  {%- when "bigquery" %} date_add(${start_date}, interval ${days_between_last_data_and_current} DAY)
                   {%- else %} date_add('days', -${days_between_last_data_and_current}, ${start_date})
                 {%- endcase %}
              {%- when "1" -%}
