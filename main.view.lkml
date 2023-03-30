@@ -1203,8 +1203,8 @@ view: main {
 
                 {%- when 'prior_year' %}
                   {%- case '@{database_type}' -%}
-                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR) then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR), SECOND)
-                    {%- else %} when ${event_date_tz_convert} between date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_start }}, ${start_date_dim})) and date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim})) then date_diff('seconds', date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_start }}, ${start_date_dim})) and date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim})))
+                    {%- when "bigquery" %} when ${event_date_tz_convert} between date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR) then date_diff(date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} YEAR), date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} YEAR), SECOND)
+                    {%- else %} when ${event_date_tz_convert} between date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_start }}, ${start_date_dim})) and date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim})) then date_diff('seconds', date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_start }}, ${start_date_dim})), date_add('yrs', -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim})))
                   {%- endcase %}
 
               {%- endcase %}
