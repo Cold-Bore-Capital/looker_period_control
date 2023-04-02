@@ -12,7 +12,7 @@ constant: date_display_format {
 }
 
 constant: time_display_format {
-  value: "HH:MI"
+  value: "HH12:MI:SS AM"
   export: override_optional
 }
 
@@ -31,6 +31,11 @@ constant: days_in_standard_quarter {
 constant: database_time_zone {
   # Set this to the value of the timezone in your database. Note: Has no effect on BigQuery. BigQuery timestamps are allways UTC.
   value: "UTC"
+  export: override_optional
+}
+
+constant: standardize_date_ranges_default {
+  value: "yes"
   export: override_optional
 }
 
