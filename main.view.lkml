@@ -1259,7 +1259,7 @@ view: main {
     group_label: "Period Duration"
     description: "Provides the number of days in a period. Useful for table calculations where you might need to find the average of something by dividing by the period size. For example, revenue per day."
     type: number
-    sql: round(${seconds_in_period}::decimal/86400, 4);;
+    sql: round(cast(${seconds_in_period} as decimal)/86400, 4);;
   }
 
   # measure: min_start_date {
