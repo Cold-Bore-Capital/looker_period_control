@@ -164,6 +164,10 @@ view: main {
       label: "Last Full Year"
       value: "ly"
     }
+    allowed_value: {
+      label: "Last Day of Completed Month"
+      value: "ldom"
+    }
     default_value: "none"
   }
 
@@ -206,6 +210,10 @@ view: main {
     allowed_value: {
       label: "Prior Year"
       value: "prior_year"
+    }
+    allowed_value: {
+      label: "Last Day of Prior Month"
+      value: "last_day_of_prior_month"
     }
     default_value: "none"
   }
@@ -460,6 +468,14 @@ view: main {
                       {%- else -%} date_add('seconds', -1, date_trunc('year', ${end_date_dim_as_of_mod}))
                     {%- endcase %}
             {%- endcase %}
+
+        {%- elsif period_selection._parameter_value == 'ldom' -%}
+
+          {%- case '@{database_type}' -%}
+            {%- when "bigquery" %} -- date_add(date_trunc(${end_date_dim_as_of_mod}, WEEK), interval -1 second)
+            {%- else %} date_add('seconds', -1, date_trunc('month', ${end_date_dim_as_of_mod}))
+          {%- endcase %}
+
         {%- else -%}
           {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' -%}
             {%- case exclude_days._parameter_value -%}
@@ -566,7 +582,15 @@ view: main {
               {%- when "bigquery" %} datetime(date_add(date_trunc(${getdate_func}, DAY), interval 1 day))
               {%- else %} date_add('days', 1, date(${getdate_func}))
             {%- endcase -%}
+          {%- elsif period_selection._parameter_value == 'ldom' -%}
+
+            {%- case '@{database_type}' -%}
+              {%- when "bigquery" %} -- date_trunc(${getdate_func}, DAY)
+              {%- else %} date_add('seconds', -1, date_trunc('month', ${getdate_func}))
+            {%- endcase -%}
+
           {%- else -%}
+
             {%- case '@{database_type}' -%}
               {%- when "bigquery" -%}  date_trunc(${getdate_func}, DAY)
               {%- else -%}  date(${getdate_func})
@@ -579,11 +603,21 @@ view: main {
               {%- when "bigquery" %} datetime(date_add({%- parameter as_of_date -%}, interval 1 day))
               {%- else %} date_add('days', 1, {%- parameter as_of_date -%})
             {%- endcase -%}
+
+          {%- elsif period_selection._parameter_value == 'ldom' -%}
+
+            {%- case '@{database_type}' -%}
+              {%- when "bigquery" -%}  --datetime(date_trunc({%- parameter as_of_date -%}, DAY))
+              {%- else -%} date_add('seconds', -1, date_trunc('month', {%- parameter as_of_date -%}))
+            {%- endcase -%}
+
           {%- else -%}
+
             {%- case '@{database_type}' -%}
               {%- when "bigquery" -%}  datetime(date_trunc({%- parameter as_of_date -%}, DAY))
               {%- else -%}  date({%- parameter as_of_date -%})
             {%- endcase -%}
+
           {%- endif -%}
       {%- endif -%};;
   }
@@ -594,7 +628,9 @@ view: main {
     # @todo NEED TO TEST THE LAST FULL WEEK, MONTH, SO ON PART OF THIS.
     hidden: yes
     sql: {%- if as_of_date._parameter_value == 'NULL' and exclude_days._parameter_value != '0' and
-             (period_selection._parameter_value != 'lw' and period_selection._parameter_value != 'lm' and period_selection._parameter_value != 'lq' and period_selection._parameter_value != 'ly') -%}
+             (period_selection._parameter_value != 'lw' and period_selection._parameter_value != 'lm' and period_selection._parameter_value != 'lq'
+            and period_selection._parameter_value != 'ly' and period_selection._parameter_value != 'ldom') -%}
+
             {%- case exclude_days._parameter_value -%}
              {%- when "last_data_future" or "last_data_max_today" -%}
                 {%- case '@{database_type}' -%}
@@ -622,7 +658,9 @@ view: main {
              {%- else -%}
                 ${start_date}
             {%- endcase %}
+
           {%- else -%}
+
             ${start_date}
           {%- endif -%}
           ;;
@@ -682,6 +720,13 @@ view: main {
                 {%- when "bigquery" %} datetime(date_trunc(date_add(${start_date_post_exclude}, interval -1 YEAR), YEAR))
                 {%- else %} date_trunc('y', date_add('y', -1, ${start_date_post_exclude}))
               {%- endcase %}
+
+            {%- when 'ldom' -%}
+              {%- case '@{database_type}' -%}
+                {%- when "bigquery" %} datetime(date_trunc(date_add(${start_date_post_exclude}, interval -1 YEAR), YEAR))
+                {%- else %} date(${end_date_dim})
+              {%- endcase %}
+
             {%- else -%}
                 ${start_date_post_exclude}
          {%- endcase %}
@@ -715,7 +760,7 @@ view: main {
     sql: {%- case period_selection._parameter_value -%}
               {%- when "trailing" -%} 'Period'
               {%- when "wtd" or "lw" -%} 'Week'
-              {%- when "mtd" or "lm" -%} 'Month'
+              {%- when "mtd" or "lm" or "ldom" -%} 'Month'
               {%- when "qtd" or "lq" -%} 'Quarter'
               {%- when "ytd" or "ly" -%} 'Year'
            {%- endcase %};;
@@ -796,9 +841,9 @@ view: main {
 
         {%- assign _period_count_values = "1st,2nd,3rd,4th,5th,6th,7th,8th,9th,10th,11th,12th,13th,14th,15th,16th,17th,18th,19th,20th,21st,22nd,23rd,24th,25th,26th,27th,28th,29th,30th,31st,32nd,33rd,34th,35th,36th,37th,38th,39th,40th,41st,42nd,43rd,44th,45th,46th,47th,48th,49th,50th,51st,52nd,53rd" | split: ',' %}
 
-        {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
-            or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
-            or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
+        {%- if _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd"
+            or _period_selection == "ytd" or _period_selection == "lw" or _period_selection == "lm"
+            or _period_selection == "lq" or _period_selection == "ly" or _period_selection =='ldom' -%}
             {%- assign _range_size = 0 -%}
             {%- assign _range_start = 0 -%}
             {%- assign _range_end = 0 -%}
@@ -865,7 +910,8 @@ view: main {
                 {%- endif -%}
 
               {%- when 'prior_week' %}
-                  when ${event_date_tz_convert} between
+                when ${event_date_tz_convert} between
+
                   {%- case '@{database_type}' -%}
                     {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} WEEK) and date_add(date_add(${end_date_dim}, interval -{{ _range_end }} DAY), interval -{{ i | minus: 1}} DAY)
                     {%- else %} date_add('w',   -{{ i | minus: 1}}, date_add('days', -{{ _range_start }}, ${start_date_dim})) and date_add('w',   -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim}))
@@ -889,6 +935,7 @@ view: main {
               {%- when 'prior_month' %}
                 {%- if  standardize_date_ranges._parameter_value == 'false' %}
                   when ${event_date_tz_convert} between
+
                     {%- case '@{database_type}' -%}
                       {%- when "bigquery" %} date_add(date_add(${start_date_dim}, interval -{{ _range_start }} DAY), interval -{{ i | minus: 1}} MONTH) and
                         {%- if _period_selection == 'lm' %}
@@ -898,7 +945,7 @@ view: main {
                         {%- endif -%}
                       {%- else %}
                           date_add('months', -{{ i | minus: 1}}, date_add('days', -{{ _range_start }}, ${start_date_dim})) and
-                        {%- if period_selection._parameter_value == 'lm' %}
+                        {%- if _period_selection == 'lm' %}
                           last_day(date_add('months', -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim})))
                         {%- else %}
                           date_add('months', -{{ i | minus: 1}}, date_add('days', -{{ _range_end }}, ${end_date_dim}))
@@ -1062,9 +1109,9 @@ view: main {
         {%- assign _range_end = 0 -%}
         {%- assign _additional_days = 0 -%}
 
-        {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
-            or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
-            or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
+        {%- if _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd"
+            or _period_selection == "ytd" or _period_selection == "lw" or _period_selection == "lm"
+            or _period_selection == "lq" or _period_selection == "ly" -%}
             {%- assign _range_size = 0 -%}
             {%- assign _range_start = 0 -%}
             {%- assign _range_end = 0 -%}
@@ -1200,9 +1247,9 @@ view: main {
     {%- assign _period_selection = period_selection._parameter_value -%}
     {%- assign _period_count = period_count._parameter_value | times: 1 -%}
     {%- assign _additional_days = 0 -%}
-    {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
-        or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
-        or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
+    {%- if _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd"
+        or _period_selection == "ytd" or _period_selection == "lw" or _period_selection == "lm"
+        or _period_selection == "lq" or _period_selection == "ly" -%}
         {%- assign _range_size = 0 -%}
         {%- assign _range_start = 0 -%}
         {%- assign _range_end = 0 -%}
@@ -1310,9 +1357,9 @@ view: main {
           {%- assign _period_selection = period_selection._parameter_value -%}
           {%- assign _period_count = period_count._parameter_value | times: 1 -%}
           {%- assign _additional_days = 0 -%}
-          {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
-              or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
-              or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
+          {%- if _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd"
+              or _period_selection == "ytd" or _period_selection == "lw" or _period_selection == "lm"
+              or _period_selection == "lq" or _period_selection == "ly" -%}
               {%- assign _range_size = 0 -%}
               {%- assign _range_start = 0 -%}
               {%- assign _range_end = 0 -%}
@@ -1518,9 +1565,9 @@ view: main {
           {%- assign _range_end = 0 -%}
           {%- assign _period_count = period_count._parameter_value | times: 1 -%}
           {%- assign _additional_days = 0 -%}
-          {%- if period_selection._parameter_value == "wtd" or period_selection._parameter_value == "mtd" or period_selection._parameter_value == "qtd"
-            or period_selection._parameter_value == "ytd" or period_selection._parameter_value == "lw" or period_selection._parameter_value == "lm"
-            or period_selection._parameter_value == "lq" or period_selection._parameter_value == "ly" -%}
+          {%- if _period_selection == "wtd" or _period_selection == "mtd" or _period_selection == "qtd"
+            or _period_selection == "ytd" or _period_selection == "lw" or _period_selection == "lm"
+            or _period_selection == "lq" or _period_selection == "ly" -%}
               {%- assign _range_size = 0 -%}
               {%- assign _range_start = 0 -%}
               {%- assign _range_end = 0 -%}
