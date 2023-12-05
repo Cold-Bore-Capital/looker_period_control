@@ -457,7 +457,7 @@ view: main {
                 {%- endcase -%}
 
       {%- endif -%}
-      {% - when "last_data_max_today" -%}
+      {%- when "last_data_max_today" -%}
       {%- if convert_tz._parameter_value == 'true' -%}
       {%- case '@{database_type}' -%}
       {%- when "bigquery" %} datetime(date_add(date_trunc(least(${getdate_func},datetime((select max(${origin_event_date}) from ${origin_table_name}))), DAY), interval 86399 second), '{{ _query._query_timezone }}')
